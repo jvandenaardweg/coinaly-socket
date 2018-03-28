@@ -70,8 +70,8 @@ class Worker extends SCWorker {
       if (message === 'bittrex' && channel === 'exchangeMarketsUpdate') {
         getCachedData(`exchange:${message}:markets`, 'all')
         .then(result => {
-          console.log('Socketcluster:', `Publish: exchangeData--${message}`);
-          scServer.exchange.publish(`exchangeData--${message}`, {
+          console.log('Socketcluster:', `Publish: markets--${message}`);
+          scServer.exchange.publish(`markets--${message}`, {
             exchange: message,
             data: result
           });
@@ -132,7 +132,7 @@ function getCachedExchangeData (socket) {
   const bittrexCachedMarketData = getCachedData(`exchange:bittrex:markets`, 'all')
   .then(json => {
     console.log('Socketcluster:', 'getCachedExchangeData', 'emit data from cache')
-    socket.emit('cachedExchangeData--bittrex', {
+    socket.emit('cachedmarkets--bittrex', {
       exchange: 'bittrex',
       data: json
     })
@@ -189,7 +189,7 @@ function cacheExchangeMarketsData (json, exchangeName, socketId) {
 function emitExchangeData (json, scServer, exchangeName, socketId) {
   var stringifiedJson = JSON.stringify(json)
   if (previousExchangeData[exchangeName] !== md5(stringifiedJson)) {
-    scServer.exchange.publish('exchangeData--bittrex', {
+    scServer.exchange.publish('markets--bittrex', {
       exchange: exchangeName,
       data: json
     });

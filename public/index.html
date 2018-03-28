@@ -49,6 +49,13 @@
       .github-button {
         padding-top: 10px;
       }
+
+      #response {
+        word-break: break-word;
+        height: 300px;
+        text-align: left;
+        overflow: scroll;
+      }
     </style>
   </head>
   <body>
@@ -57,17 +64,11 @@
         <div class="title">
           SocketCluster
         </div>
-        <div class="text">
-          Design is not just what it looks like and feels like. Design is how it works. &mdash; Steve Jobs
-        </div>
-        <div class="small">
-          <a href="http://socketcluster.io/#!/docs/getting-started">Getting Started</a> <strong>&middot;</strong>
-          <a href="http://socketcluster.io/#!/docs">Documentation</a>
-        </div>
-        <p class="github-button">
-          <iframe src="https://ghbtns.com/github-btn.html?user=socketcluster&repo=socketcluster&type=star&count=true&size=large" frameborder="0" scrolling="0" width="160px" height="30px"></iframe>
-        </p>
       </div>
+
+      <pre id="response">
+        pre
+      </pre>
     </div>
     <script type="text/javascript">
       // Initiate the connection to the server
@@ -100,6 +101,7 @@
 
       exchangeDataChannel.watch(function (data) {
         console.log('Received Exchange Data:', data);
+        document.getElementById('response').innerHTML = JSON.stringify(data.data, undefined, 2)
       });
     </script>
   </body>

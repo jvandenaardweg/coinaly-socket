@@ -12,6 +12,12 @@ var axios = require('axios');
 var ccxt = require('ccxt');
 var md5 = require('md5');
 var redis = require('./redis');
+// var pub = require('./redis');
+// var sub = require('./redis');
+
+const Redis = require('ioredis')
+const pub = new Redis(process.env.REDIS_URL)
+const sub = new Redis(process.env.REDIS_URL)
 
 
 var bittrexExchange = new ccxt.bittrex({
@@ -55,6 +61,24 @@ class Worker extends SCWorker {
 
     getExchangeDataAtInterval(scServer)
 
+    sub.subscribe('exchangeMarketsUpdate');
+
+    sub.on('message', function (channel, message) {
+      // Receive message Hello world! from channel news
+      // Receive message Hello again! from channel music
+
+      if (message === 'bittrex' && channel === 'exchangeMarketsUpdate') {
+        getCachedData(`exchange:${message}:markets`, 'all')
+        .then(result => {
+          console.log('Socketcluster:', `Publish: exchangeData--${message}`);
+          scServer.exchange.publish(`exchangeData--${message}`, {
+            exchange: message,
+            data: result
+          });
+        })
+      }
+    });
+
     /*
       In here we handle our incoming realtime connections and listen for events.
     */
@@ -65,7 +89,7 @@ class Worker extends SCWorker {
       // replace this with your own logic
 
       // Send last market data on connection
-      getCachedExchangeData(socket)
+      getCachedExchangeData(socket, socket.id)
 
       socket.on('sampleClientEvent', function (data) {
         count++;
@@ -90,8 +114,10 @@ class Worker extends SCWorker {
   }
 }
 
+
+
 function getCachedData (keyName, fieldName) {
-  console.log('Redis:', 'Get cached data', keyName, fieldName)
+  // console.log('Socketcluster:', 'Get cached data', keyName, fieldName)
   return redis.hget(keyName, fieldName)
   .then(result => JSON.parse(result))
   .catch(handleRedisError)
@@ -106,7 +132,7 @@ function getCachedExchangeData (socket) {
   const bittrexCachedMarketData = getCachedData(`exchange:bittrex:markets`, 'all')
   .then(json => {
     console.log('Socketcluster:', 'getCachedExchangeData', 'emit data from cache')
-    socket.emit('exchangeData', {
+    socket.emit('cachedExchangeData--bittrex', {
       exchange: 'bittrex',
       data: json
     })
@@ -117,7 +143,8 @@ function getExchangeDataAtInterval (scServer, socketId) {
   interval(async () => {
     try {
       const result = await bittrexExchange.fetchTickers()
-      emitExchangeData(result, scServer, 'bittrex', socketId)
+      cacheExchangeMarketsData(result, 'bittrex', socketId)
+      // emitExchangeData(result, scServer, 'bittrex', socketId)
     } catch (e) {
       emitExchangeError('error', e, scServer, 'bittrex')
     }
@@ -126,14 +153,38 @@ function getExchangeDataAtInterval (scServer, socketId) {
   // interval(async () => {
   //   try {
   //     const result = await binanceExchange.fetchTickers()
-  //     emitExchangeData(result, socket, 'binance')
+  //     cacheExchangeMarketsData(result, 'binance', socketId)
   //   } catch (e) {
-  //     emitExchangeError('error', e, socket, 'binance')
+  //     emitExchangeError('error', e, scServer, 'binance')
   //   }
   // }, 2000)
 }
 
-var previousExchangeData = {}
+
+
+
+function cacheExchangeMarketsData (json, exchangeName, socketId) {
+  // First, get the cached result to compare if something changed
+  const cachedMarketData = getCachedData(`exchange:${exchangeName}:markets`, 'all')
+  .then(cachedResult => {
+    const stringifiedJson = JSON.stringify(json) // TODO: Make sure we store an list of markets
+    const stringifedCachedResult = JSON.stringify(cachedResult)
+
+    // If the data changed, store it in Redis
+    if (md5(stringifiedJson) !== md5(stringifedCachedResult)) {
+      redis.hset(`exchange:${exchangeName}:markets`, 'all', stringifiedJson)
+      pub.publish('exchangeMarketsUpdate', exchangeName);
+      console.log('Socketcluster:', 'Saved new exchange market data', exchangeName)
+    }
+
+  })
+  .catch(error => {
+    console.log('Socketcluster:', 'Error getting cached market data to compare', exchangeName, error)
+  })
+}
+
+
+
 
 function emitExchangeData (json, scServer, exchangeName, socketId) {
   var stringifiedJson = JSON.stringify(json)
@@ -148,6 +199,7 @@ function emitExchangeData (json, scServer, exchangeName, socketId) {
     // })
     previousExchangeData[exchangeName] = md5(stringifiedJson)
     redis.hset(`exchange:${exchangeName}:markets`, 'all', stringifiedJson)
+    pub.publish('exchangeUpdate', exchangeName)
     console.log('Socketcluster:', 'emitExchangeData', exchangeName, 'changed data')
   } else {
     console.log('Socketcluster:', 'emitExchangeData', exchangeName, 'no change')

@@ -81,22 +81,25 @@
         console.log('CONNECTED');
       });
 
-      socket.on('rand', function (data) {
-        console.log('RANDOM STREAM: ' + data.rand);
-      });
+      // socket.on('rand', function (data) {
+      //   console.log('RANDOM STREAM: ' + data.rand);
+      // });
 
-      socket.on('exchangeData', function (data) {
-        console.log('EXCHANGE DATA: ', data);
-      });
 
-      var sampleChannel = socket.subscribe('sample');
 
-      sampleChannel.on('subscribeFail', function (err) {
-        console.log('Failed to subscribe to the sample channel due to error: ' + err);
-      });
+      // var sampleChannel = socket.subscribe('sample');
+      var exchangeDataChannel = socket.subscribe('exchangeData--bittrex');
 
-      sampleChannel.watch(function (num) {
-        console.log('Sample channel message:', num);
+      // sampleChannel.on('subscribeFail', function (err) {
+      //   console.log('Failed to subscribe to the sample channel due to error: ' + err);
+      // });
+
+      // sampleChannel.watch(function (num) {
+      //   console.log('Sample channel message:', num);
+      // });
+
+      exchangeDataChannel.watch(function (data) {
+        console.log('Received Exchange Data:', data);
       });
     </script>
   </body>

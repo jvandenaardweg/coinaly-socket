@@ -14,7 +14,15 @@ redis.on('close', function () {
 })
 
 redis.on('ready', function () {
+  console.log('Redis:', 'Connect.')
+})
+
+redis.on('ready', function () {
   console.log('Redis:', 'Connection successful!')
+})
+
+redis.on('end', function () {
+  console.log('Redis:', 'End.')
 })
 
 module.exports = redis

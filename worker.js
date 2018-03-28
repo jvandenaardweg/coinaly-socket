@@ -53,11 +53,13 @@ class Worker extends SCWorker {
 
     var count = 0;
 
+    getExchangeDataAtInterval(scServer)
+
     /*
       In here we handle our incoming realtime connections and listen for events.
     */
     scServer.on('connection', function (socket) {
-      console.log('Socketcluster:', 'Client connection')
+      console.log('Socketcluster:', 'Client connection', socket.id)
 
       // Some sample logic to show how to handle client events,
       // replace this with your own logic
@@ -72,7 +74,7 @@ class Worker extends SCWorker {
       });
 
       // Run a function 10 times with 1 second between each iteration
-      getExchangeDataAtInterval(socket)
+
 
       var interval = setInterval(function () {
         socket.emit('rand', {
@@ -111,13 +113,13 @@ function getCachedExchangeData (socket) {
   })
 }
 
-function getExchangeDataAtInterval (socket) {
+function getExchangeDataAtInterval (scServer, socketId) {
   interval(async () => {
     try {
       const result = await bittrexExchange.fetchTickers()
-      emitExchangeData(result, socket, 'bittrex')
+      emitExchangeData(result, scServer, 'bittrex', socketId)
     } catch (e) {
-      emitExchangeError('error', e, socket, 'bittrex')
+      emitExchangeError('error', e, scServer, 'bittrex')
     }
   }, 2000)
 
@@ -133,13 +135,17 @@ function getExchangeDataAtInterval (socket) {
 
 var previousExchangeData = {}
 
-function emitExchangeData (json, socket, exchangeName) {
+function emitExchangeData (json, scServer, exchangeName, socketId) {
   var stringifiedJson = JSON.stringify(json)
   if (previousExchangeData[exchangeName] !== md5(stringifiedJson)) {
-    socket.emit('exchangeData', {
+    scServer.exchange.publish('exchangeData--bittrex', {
       exchange: exchangeName,
       data: json
-    })
+    });
+    // socket.emit('exchangeData', {
+    //   exchange: exchangeName,
+    //   data: json
+    // })
     previousExchangeData[exchangeName] = md5(stringifiedJson)
     redis.hset(`exchange:${exchangeName}:markets`, 'all', stringifiedJson)
     console.log('Socketcluster:', 'emitExchangeData', exchangeName, 'changed data')
@@ -148,12 +154,12 @@ function emitExchangeData (json, socket, exchangeName) {
   }
 }
 
-function emitExchangeError (type, error, socket, exchangeName) {
-  handleExchangeError(ccxt, error, socket, exchangeName)
-  socket.emit('errors', {
-    data: type,
-    error: error
-  })
+function emitExchangeError (type, error, scServer, exchangeName) {
+  handleExchangeError(ccxt, error, scServer, exchangeName)
+  scServer.exchange.publish('errors', {
+    exchange: exchangeName,
+    data: error
+  });
 }
 
 

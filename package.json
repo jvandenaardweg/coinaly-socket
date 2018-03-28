@@ -16,6 +16,7 @@
     "express": "4.14.0",
     "interval-promise": "^1.1.1",
     "ioredis": "^3.2.2",
+    "joi": "^13.1.2",
     "md5": "^2.2.1",
     "minimist": "1.1.0",
     "morgan": "1.7.0",
@@ -26,7 +27,8 @@
     "scc-broker-client": "^3.0.0",
     "serve-static": "1.11.2",
     "socketcluster": "^11.1.0",
-    "socketcluster-client": "^11.0.0"
+    "socketcluster-client": "^11.0.0",
+    "ws": "^5.1.0"
   },
   "keywords": [
     "websocket",

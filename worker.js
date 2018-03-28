@@ -12,6 +12,7 @@ var axios = require('axios');
 var ccxt = require('ccxt');
 var md5 = require('md5');
 var redis = require('./redis');
+var binance = require('./exchanges/binance');
 // var pub = require('./redis');
 // var sub = require('./redis');
 
@@ -174,7 +175,7 @@ function cacheExchangeMarketsData (json, exchangeName, socketId) {
     if (md5(stringifiedJson) !== md5(stringifedCachedResult)) {
       redis.hset(`exchange:${exchangeName}:markets`, 'all', stringifiedJson)
       pub.publish('exchangeMarketsUpdate', exchangeName);
-      console.log('Socketcluster:', 'Saved new exchange market data', exchangeName)
+      console.log('Bittrex:', 'Redis', 'Saved Markets', Object.keys(json).length)
     }
 
   })

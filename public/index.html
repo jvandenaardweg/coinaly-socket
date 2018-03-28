@@ -85,6 +85,10 @@
         console.log('RANDOM STREAM: ' + data.rand);
       });
 
+      socket.on('exchangeData', function (data) {
+        console.log('EXCHANGE DATA: ', data);
+      });
+
       var sampleChannel = socket.subscribe('sample');
 
       sampleChannel.on('subscribeFail', function (err) {

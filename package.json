@@ -19,6 +19,7 @@
     "md5": "^2.2.1",
     "minimist": "1.1.0",
     "morgan": "1.7.0",
+    "raven": "^2.4.2",
     "sc-errors": "^1.4.0",
     "sc-framework-health-check": "^2.0.0",
     "sc-hot-reboot": "^1.0.0",

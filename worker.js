@@ -65,15 +65,15 @@ class Worker extends SCWorker {
     sub.subscribe('exchangeMarketsUpdate');
 
     sub.on('message', function (channel, message) {
-      // Receive message Hello world! from channel news
-      // Receive message Hello again! from channel music
+      const exchangeName = message
+      const event = channel
 
-      if (message === 'bittrex' && channel === 'exchangeMarketsUpdate') {
-        getCachedData(`exchange:${message}:markets`, 'all')
+      if (event === 'exchangeMarketsUpdate') {
+        getCachedData(`exchange:${exchangeName}:markets`, 'all')
         .then(result => {
-          console.log('Socketcluster:', `Publish: markets--${message}`);
-          scServer.exchange.publish(`markets--${message}`, {
-            exchange: message,
+          console.log('Socketcluster:', `Publish: markets--${exchangeName}`);
+          scServer.exchange.publish(`markets--${exchangeName}`, {
+            exchange: exchangeName,
             data: result
           });
         })

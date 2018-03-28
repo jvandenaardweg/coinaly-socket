@@ -5,6 +5,8 @@ API Docs: https://github.com/binance-exchange/binance-official-api-docs/blob/mas
 const WebSocket = require('ws')
 const ws = new WebSocket('wss://stream.binance.com:9443/ws/!ticker@arr')
 const redis = require('../redis')
+const Redis = require('ioredis');
+const pub = new Redis(process.env.REDIS_URL);
 // const Joi = require('joi');
 
 // const schema = Joi.object().keys({
@@ -37,6 +39,7 @@ ws.on('message', function incoming(data) {
   // console.log('Binance Websocket:', 'Event Type', parsedData[0].e)
   redis.hset('exchange:binance:markets', 'all', data)
   console.log('Binance:', 'Redis', 'Saved Markets', totalMarkets)
+  pub.publish('exchangeMarketsUpdate', 'binance');
 
   /*
   {

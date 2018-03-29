@@ -79,7 +79,7 @@ class Worker extends SCWorker {
       // replace this with your own logic
 
       // Send last market data on connection
-      getCachedExchangeData(socket, socket.id)
+      // getCachedExchangeData(socket, socket.id)
 
       socket.on('sampleClientEvent', function (data) {
         count++;

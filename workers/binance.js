@@ -15,12 +15,12 @@ class Binance extends Worker {
   }
 
   handleError (error) {
-    console.log('Binance worker:', 'Websocket Error', error.message)
+    this.handleSentryError(`${this.exchangeName} Worker: Websocket Error: ${error.message}`)
   }
 
   start () {
     this.websocket = new WebSocket(this.websocketEndpoint)
-    this.websocket.addEventListener('error', this.handleError)
+    this.websocket.addEventListener('error', this.handleError.bind(this))
 
     this.websocket.on('open', () => {
       console.log(`${this.exchangeName} Websocket:`, 'Opened Connection.')

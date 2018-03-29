@@ -1,4 +1,6 @@
 "use strict";
+var Raven = require('raven');
+Raven.config('https://386d9fe693df4a56b26b1a549d0372a0:f6d8e784e378493e8cf1556660b1cad6@sentry.io/711243').install();
 const redis = require('../redis')
 const Redis = require('ioredis');
 const redisPub = new Redis(process.env.REDIS_URL);
@@ -73,8 +75,25 @@ class Worker {
     } else {
       message = e.message
     }
-  
+
     console.log('CCXT:', 'Error', e.message)
+    this.handleSentryError(`${this.exchangeName} Worker: CCXT Exchange Error: ${message}`)
+  }
+
+  handleSentryError (message) {
+    try {
+      throw new Error(message);
+    } catch (e) {
+      // You can get eventId either as the synchronous return value, or via the callback
+      var eventId = Raven.captureException(e, function (sendErr, eventId) {
+        // This callback fires once the report has been sent to Sentry
+        if (sendErr) {
+          console.error('Worker Error:', 'Failed to send captured exception to Sentry');
+        } else {
+          console.log('Worker Error:', 'Captured exception and send to Sentry successfully');
+        }
+      });
+    }
   }
 }
 

@@ -41,6 +41,7 @@
   "readmeFilename": "README.md",
   "scripts": {
     "start": "node server.js",
-    "start:docker": "node dockerwait.js && node ${SOCKETCLUSTER_MASTER_CONTROLLER:-server.js}"
+    "start:docker": "node dockerwait.js && node ${SOCKETCLUSTER_MASTER_CONTROLLER:-server.js}",
+    "start:workers": "node workers.js"
   }
 }

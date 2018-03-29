@@ -12,17 +12,17 @@ var axios = require('axios');
 var ccxt = require('ccxt');
 var md5 = require('md5');
 var redis = require('./redis');
-var Binance = require('./workers/binance');
-var Bittrex = require('./workers/bittrex');
+// var Binance = require('./workers/binance');
+// var Bittrex = require('./workers/bittrex');
 
 const Redis = require('ioredis')
 const redisSub = new Redis(process.env.REDIS_URL)
 
-var binanceWorker = new Binance()
-binanceWorker.start()
+// var binanceWorker = new Binance()
+// binanceWorker.start()
 
-var bittrexWorker = new Bittrex()
-bittrexWorker.start()
+// var bittrexWorker = new Bittrex()
+// bittrexWorker.start()
 
 class Worker extends SCWorker {
   run() {

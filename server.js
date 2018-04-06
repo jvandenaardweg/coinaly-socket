@@ -1,3 +1,4 @@
+require('newrelic')
 /*
   This is the SocketCluster master controller file.
   It is responsible for bootstrapping the SocketCluster master process.

@@ -11,6 +11,7 @@ class Worker {
     this.exchangeName = name
     this.exchangeNameLowerCased = this.exchangeName.toLowerCase()
     this.redisPub = redisPub
+    this.startedSince = null
   }
 
   cacheMarkets (marketsData) {

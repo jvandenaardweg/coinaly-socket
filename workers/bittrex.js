@@ -22,6 +22,8 @@ class Bittrex extends Worker {
   }
 
   start () {
+    this.startedSince = new Date()
+    
     interval(async () => {
       try {
         const result = await this.ccxt.fetchTickers()

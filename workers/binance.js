@@ -24,6 +24,7 @@ class Binance extends Worker {
 
     this.websocket.on('open', () => {
       console.log(`${this.exchangeName} Websocket:`, 'Opened Connection.')
+      this.startedSince = new Date()
     })
 
     this.websocket.on('message', (data) => {

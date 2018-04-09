@@ -29,7 +29,7 @@ class Bittrex extends Worker {
       } catch (e) {
         this.handleCCXTExchangeError(this.ccxt, e)
       }
-    }, 2000)
+    }, 2000, {stopOnError: false})
   }
 }
 

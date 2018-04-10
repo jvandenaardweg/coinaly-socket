@@ -10,12 +10,12 @@ const Redis = require('ioredis');
 const pub = new Redis(process.env.REDIS_URL);
 const interval = require('interval-promise');
 
-class Bittrex extends Worker {
+class Gdax extends Worker {
   constructor () {
-    super('Bittrex')
+    super('Gdax')
 
     try {
-      this.ccxt = new ccxt.bittrex({
+      this.ccxt = new ccxt.gdax({
         enableRateLimit: true,
         timeout: 15000
       })
@@ -28,7 +28,7 @@ class Bittrex extends Worker {
   start () {
     interval(async () => {
       try {
-        const result = await this.ccxt.fetchTickers()
+        const result = await this.ccxt.loadMarkets()
         this.totalUpdates = this.totalUpdates + 1
         this.lastUpdateAt = new Date()
         this.cacheMarkets(result, this.exchangeName)
@@ -39,4 +39,4 @@ class Bittrex extends Worker {
   }
 }
 
-module.exports = Bittrex
+module.exports = Gdax

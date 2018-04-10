@@ -55,7 +55,7 @@ class Worker {
 
   handleCCXTExchangeError (ccxt, e) {
     this.lastErrorAt = new Date()
-
+    console.log('CCXT error', e)
     let message
     let reason = null
     let exchangeErrorCode = null
@@ -103,11 +103,14 @@ class Worker {
       // You can get eventId either as the synchronous return value, or via the callback
       var eventId = Raven.captureException(e, function (sendErr, eventId) {
         // This callback fires once the report has been sent to Sentry
+        console.log('\nWorker Error: Unhandled exception captured by Sentry:\n')
+        console.log('==========\n')
         if (sendErr) {
           console.error('Worker Error:', 'Failed to send captured exception to Sentry');
         } else {
           console.log('Worker Error:', 'Captured exception and send to Sentry successfully');
         }
+        console.log('\n==========\n')
       });
     }
   }

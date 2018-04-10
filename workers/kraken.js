@@ -10,14 +10,15 @@ const Redis = require('ioredis');
 const pub = new Redis(process.env.REDIS_URL);
 const interval = require('interval-promise');
 
-class Bittrex extends Worker {
+class Kraken extends Worker {
   constructor () {
-    super('Bittrex')
+    super('Kraken')
 
     try {
-      this.ccxt = new ccxt.bittrex({
+      this.ccxt = new ccxt.kraken({
         enableRateLimit: true,
-        timeout: 15000
+        timeout: 15000,
+        verbose: false
       })
     } catch (e) {
       console.log(e)
@@ -39,4 +40,4 @@ class Bittrex extends Worker {
   }
 }
 
-module.exports = Bittrex
+module.exports = Kraken

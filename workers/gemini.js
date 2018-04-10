@@ -10,12 +10,12 @@ const Redis = require('ioredis');
 const pub = new Redis(process.env.REDIS_URL);
 const interval = require('interval-promise');
 
-class Bittrex extends Worker {
+class Gemini extends Worker {
   constructor () {
-    super('Bittrex')
+    super('Gemini')
 
     try {
-      this.ccxt = new ccxt.bittrex({
+      this.ccxt = new ccxt.gemini({
         enableRateLimit: true,
         timeout: 15000
       })
@@ -39,4 +39,4 @@ class Bittrex extends Worker {
   }
 }
 
-module.exports = Bittrex
+module.exports = Gemini

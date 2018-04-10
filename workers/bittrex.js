@@ -14,19 +14,23 @@ class Bittrex extends Worker {
   constructor () {
     super('Bittrex')
 
-    this.ccxt = new ccxt.bittrex({
-      apiKey: process.env.BITTREX_API_KEY,
-      secret: process.env.BITTREX_API_SECRET,
-      timeout: 15000
-    })
+    try {
+      this.ccxt = new ccxt.bittrex({
+        timeout: 15000
+      })
+    } catch (e) {
+      console.log('catch')
+      console.log(e)
+    }
+
   }
 
   start () {
-    this.startedSince = new Date()
-    
     interval(async () => {
       try {
         const result = await this.ccxt.fetchTickers()
+        this.totalUpdates = this.totalUpdates + 1
+        this.lastUpdateAt = new Date()
         this.cacheMarkets(result, this.exchangeName)
       } catch (e) {
         this.handleCCXTExchangeError(this.ccxt, e)

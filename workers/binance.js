@@ -5,17 +5,35 @@ API Docs: https://github.com/binance-exchange/binance-official-api-docs/blob/mas
 const Worker = require('./worker')
 const WebSocket = require('ws')
 const redis = require('../redis')
+const TransformBinance = require('../transformations/binance')
 const Redis = require('ioredis');
 const pub = new Redis(process.env.REDIS_URL);
+const moment = require('moment')
 
 class Binance extends Worker {
   constructor () {
     super('Binance')
     this.websocketEndpoint = 'wss://stream.binance.com:9443/ws/!ticker@arr'
+    this.restartAfterHours = 12
+  }
+
+  shouldRestartNow () {
+    return this.runningTime('hours') > this.restartAfterHours // Restart this worker after 12 hours (Binance requires to restart the websocket connection after 24 hours)
+  }
+
+  timeToRestart () {
+    return (this.restartAfterHours * 60) - this.runningTime('minutes') + ' minutes'
   }
 
   handleError (error) {
     this.handleSentryError(`${this.exchangeName} Worker: Websocket Error: ${error.message}`)
+  }
+
+  restart () {
+    console.log(`${this.exchangeName} Websocket:`, 'Restarting...')
+    this.websocket.terminate()
+    this.restartedAt = new Date()
+    this.start()
   }
 
   start () {
@@ -24,10 +42,12 @@ class Binance extends Worker {
 
     this.websocket.on('open', () => {
       console.log(`${this.exchangeName} Websocket:`, 'Opened Connection.')
-      this.startedSince = new Date()
     })
 
     this.websocket.on('message', (data) => {
+      // TransformBinance.transformMultiple(data)
+      this.totalUpdates = this.totalUpdates + 1
+      this.lastUpdateAt = new Date()
       this.cacheMarkets(data, this.exchangeName)
     })
   }

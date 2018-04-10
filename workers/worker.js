@@ -5,13 +5,27 @@ const redis = require('../redis')
 const Redis = require('ioredis');
 const redisPub = new Redis(process.env.REDIS_URL);
 const md5 = require('md5')
+const moment = require('moment')
 
 class Worker {
   constructor (name) {
     this.exchangeName = name
     this.exchangeNameLowerCased = this.exchangeName.toLowerCase()
     this.redisPub = redisPub
-    this.startedSince = null
+    this.startedAt = new Date()
+    this.restartNow = false
+    this.restartedAt = null
+    this.totalUpdates = 0
+    this.lastUpdateAt = null
+    this.lastErrorAt = null
+  }
+
+  runningTime (unitOfTime) {
+    return moment().diff(this.startedAt, unitOfTime) // seconds, hours, minutes etc...
+  }
+
+  lastUpdateFromNow () {
+    return moment(this.lastUpdateAt).fromNow()
   }
 
   cacheMarkets (marketsData) {
@@ -40,6 +54,8 @@ class Worker {
   }
 
   handleCCXTExchangeError (ccxt, e) {
+    this.lastErrorAt = new Date()
+
     let message
     let reason = null
     let exchangeErrorCode = null
@@ -77,8 +93,7 @@ class Worker {
       message = e.message
     }
 
-    console.log('CCXT:', 'Error', e.message)
-    this.handleSentryError(`${this.exchangeName} Worker: CCXT Exchange Error: ${message}`)
+    console.log('ERROR!!', `${this.exchangeName} Worker:`, 'CCXT Error', message)
   }
 
   handleSentryError (message) {

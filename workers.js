@@ -17,13 +17,36 @@ Raven.context(function () {
   const bittrexWorker = new Bittrex()
   bittrexWorker.start()
 
+  // Report data to console for debugging and status check
   setInterval(() => {
-    if (binanceWorker.startedSince) {
-      console.log('Binance Worker', 'Running time', moment(binanceWorker.startedSince).fromNow())
+    if (binanceWorker.startedAt) {
+      if (binanceWorker.shouldRestartNow()) {
+        console.log(`\nSTATUS: Binance Worker: Restarting because of runningtime limitations...`)
+        binanceWorker.restart()
+      }
+      console.log(
+        '\nSTATUS: Binance Worker:\n',
+        `- Total updates: ${binanceWorker.totalUpdates}\n`,
+        `- Running time: ${binanceWorker.runningTime('seconds')} seconds (${binanceWorker.runningTime('hours')} hours)\n`,
+        `- Time to restart: ${binanceWorker.timeToRestart()}\n`,
+        `- Last update: ${binanceWorker.lastUpdateFromNow()}\n`,
+        `- Started since: ${binanceWorker.startedAt}\n`,
+        `- Restarted at: ${binanceWorker.restartedAt}\n`,
+        `- Last error at: ${binanceWorker.lastErrorAt}\n`
+      )
     }
 
-    if (bittrexWorker.startedSince) {
-      console.log('Bittrex Worker', 'Running time', moment(bittrexWorker.startedSince).fromNow())
+    if (bittrexWorker.startedAt) {
+      console.log(
+        '\nSTATUS: Bittrex Worker:\n',
+        `- Total updates: ${bittrexWorker.totalUpdates}\n`,
+        `- Running time: ${bittrexWorker.runningTime('seconds')} seconds (${bittrexWorker.runningTime('hours')} hours)\n`,
+        `- Time to restart: 0\n`,
+        `- Last update: ${bittrexWorker.lastUpdateFromNow()}\n`,
+        `- Started since: ${bittrexWorker.startedAt}\n`,
+        `- Restarted at: ${bittrexWorker.restartedAt}\n`,
+        `- Last error at: ${bittrexWorker.lastErrorAt}\n`
+      )
     }
   }, 5000)
 })

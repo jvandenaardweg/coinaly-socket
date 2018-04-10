@@ -14,6 +14,8 @@ Raven.context(function () {
   const Kraken = require('./workers/kraken')
   const Bitfinex = require('./workers/bitfinex')
   const Poloniex = require('./workers/poloniex')
+  const Hitbtc = require('./workers/hitbtc')
+  const Kucoin = require('./workers/kucoin')
   const moment = require('moment')
 
   const binanceWorker = new Binance()
@@ -36,6 +38,12 @@ Raven.context(function () {
 
   const poloniexWorker = new Poloniex()
   poloniexWorker.start()
+
+  const hitbtcWorker = new Hitbtc()
+  hitbtcWorker.start()
+
+  const kucoinWorker = new Kucoin()
+  kucoinWorker.start()
 
   // Report data to console for debugging and status check
   setInterval(() => {
@@ -61,6 +69,14 @@ Raven.context(function () {
 
     if (poloniexWorker.startedAt) {
       logger(poloniexWorker)
+    }
+
+    if (hitbtcWorker.startedAt) {
+      logger(hitbtcWorker)
+    }
+
+    if (kucoinWorker.startedAt) {
+      logger(kucoinWorker)
     }
   }, 5000)
 })

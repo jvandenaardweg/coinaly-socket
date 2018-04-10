@@ -1,11 +1,12 @@
 "use strict";
-var Raven = require('raven');
-Raven.config('https://386d9fe693df4a56b26b1a549d0372a0:f6d8e784e378493e8cf1556660b1cad6@sentry.io/711243').install();
+var Raven = require('raven')
+Raven.config('https://386d9fe693df4a56b26b1a549d0372a0:f6d8e784e378493e8cf1556660b1cad6@sentry.io/711243').install()
 const redis = require('../redis')
-const Redis = require('ioredis');
-const redisPub = new Redis(process.env.REDIS_URL);
+const Redis = require('ioredis')
+const redisPub = new Redis(process.env.REDIS_URL)
 const md5 = require('md5')
 const moment = require('moment')
+const interval = require('interval-promise')
 
 class Worker {
   constructor (name) {
@@ -18,35 +19,61 @@ class Worker {
     this.totalUpdates = 0
     this.lastUpdateAt = null
     this.lastErrorAt = null
+    this.restartAfterHours = null
   }
 
   runningTime (unitOfTime) {
-    return moment().diff(this.startedAt, unitOfTime) // seconds, hours, minutes etc...
+    if (this.startedAt) return moment().diff(this.startedAt, unitOfTime) // seconds, hours, minutes etc...
+    return 0
   }
 
   lastUpdateFromNow () {
-    return moment(this.lastUpdateAt).fromNow()
+    if (this.lastUpdateAt) return moment(this.lastUpdateAt).fromNow()
+    return 0
   }
 
-  cacheMarkets (marketsData) {
-    const totalMarkets = (typeof marketsData === 'string') ? JSON.parse(marketsData).length : Object.keys(marketsData).length
-    const marketsDataString = (typeof marketsData === 'string') ? marketsData : JSON.stringify(marketsData)
+  shouldRestartNow () {
+    return this.runningTime('hours') > this.restartAfterHours // Restart this worker after 12 hours (Binance requires to restart the websocket connection after 24 hours)
+  }
 
-    redis.hget(`exchange:${this.exchangeNameLowerCased}:markets`, 'all')
-    .then(cachedResult => {
+  timeToRestart () {
+    if (this.restartAfterHours) {
+      return (this.restartAfterHours * 60) - this.runningTime('minutes') + ' minutes'
+    } else {
+      return false
+    }
+  }
+
+  startInterval (ccxtMethod) {
+    interval(async () => {
+      try {
+        const result = await this.ccxt[ccxtMethod]()
+        this.totalUpdates = this.totalUpdates + 1
+        this.lastUpdateAt = new Date()
+        this.cacheTickers(result, this.exchangeName)
+      } catch (e) {
+        this.handleCCXTExchangeError(this.ccxt, e)
+      }
+    }, 2000, {stopOnError: false})
+  }
+
+  async cacheTickers (marketsData) {
+    try {
+      const totalMarkets = (typeof marketsData === 'string') ? JSON.parse(marketsData).length : Object.keys(marketsData).length
+      const marketsDataString = (typeof marketsData === 'string') ? marketsData : JSON.stringify(marketsData)
+
+      const cachedResult = await redis.hget(`exchange:${this.exchangeNameLowerCased}:markets`, 'all')
       const stringifedCachedResult = JSON.stringify(cachedResult)
 
       // If the data changed, store it in Redis
       if (md5(marketsDataString) !== md5(stringifedCachedResult)) {
-        redis.hset(`exchange:${this.exchangeNameLowerCased}:markets`, 'all', marketsDataString)
+        await redis.hset(`exchange:${this.exchangeNameLowerCased}:markets`, 'all', marketsDataString)
         this.redisPublishChange(this.exchangeNameLowerCased)
         console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Markets', totalMarkets)
       }
-
-    })
-    .catch(error => {
-      console.log(`${this.exchangeName} Worker:`, 'Error getting cached market data to compare', this.exchangeName, error)
-    })
+    } catch(e) {
+      console.log(`${this.exchangeName} Worker:`, 'Error getting cached market data to compare', this.exchangeName, e)
+    }
   }
 
   redisPublishChange () {

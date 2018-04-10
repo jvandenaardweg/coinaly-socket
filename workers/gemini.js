@@ -31,7 +31,7 @@ class Gemini extends Worker {
         const result = await this.ccxt.fetchTickers()
         this.totalUpdates = this.totalUpdates + 1
         this.lastUpdateAt = new Date()
-        this.cacheMarkets(result, this.exchangeName)
+        this.cacheTickers(result, this.exchangeName)
       } catch (e) {
         this.handleCCXTExchangeError(this.ccxt, e)
       }

@@ -87,7 +87,7 @@ function logger (workerInstance) {
     `\nSTATUS: ${workerInstance.exchangeName} Worker:\n`,
     `- Total updates: ${workerInstance.totalUpdates}\n`,
     `- Running time: ${workerInstance.runningTime('seconds')} seconds (${workerInstance.runningTime('hours')} hours)\n`,
-    `- Time to restart: 0\n`,
+    `- Time to restart: ${workerInstance.timeToRestart()}\n`,
     `- Last update: ${workerInstance.lastUpdateFromNow()}\n`,
     `- Started since: ${workerInstance.startedAt}\n`,
     `- Restarted at: ${workerInstance.restartedAt}\n`,

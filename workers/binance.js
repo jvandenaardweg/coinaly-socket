@@ -17,15 +17,7 @@ class Binance extends Worker {
     this.restartAfterHours = 12
   }
 
-  shouldRestartNow () {
-    return this.runningTime('hours') > this.restartAfterHours // Restart this worker after 12 hours (Binance requires to restart the websocket connection after 24 hours)
-  }
-
-  timeToRestart () {
-    return (this.restartAfterHours * 60) - this.runningTime('minutes') + ' minutes'
-  }
-
-  handleError (error) {
+  handleWebsocketError (error) {
     this.handleSentryError(`${this.exchangeName} Worker: Websocket Error: ${error.message}`)
   }
 
@@ -38,7 +30,7 @@ class Binance extends Worker {
 
   start () {
     this.websocket = new WebSocket(this.websocketEndpoint)
-    this.websocket.addEventListener('error', this.handleError.bind(this))
+    this.websocket.addEventListener('error', this.handleWebsocketError.bind(this))
 
     this.websocket.on('open', () => {
       console.log(`${this.exchangeName} Websocket:`, 'Opened Connection.')
@@ -48,7 +40,7 @@ class Binance extends Worker {
       // TransformBinance.transformMultiple(data)
       this.totalUpdates = this.totalUpdates + 1
       this.lastUpdateAt = new Date()
-      this.cacheMarkets(data, this.exchangeName)
+      this.cacheTickers(data, this.exchangeName)
     })
   }
 }

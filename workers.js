@@ -13,6 +13,7 @@ Raven.context(function () {
   const Gemini = require('./workers/gemini')
   const Kraken = require('./workers/kraken')
   const Bitfinex = require('./workers/bitfinex')
+  const Poloniex = require('./workers/poloniex')
   const moment = require('moment')
 
   const binanceWorker = new Binance()
@@ -33,6 +34,9 @@ Raven.context(function () {
   const bitfinexWorker = new Bitfinex()
   bitfinexWorker.start()
 
+  const poloniexWorker = new Poloniex()
+  poloniexWorker.start()
+
   // Report data to console for debugging and status check
   setInterval(() => {
     if (binanceWorker.startedAt) {
@@ -40,55 +44,37 @@ Raven.context(function () {
         console.log(`\nSTATUS: Binance Worker: Restarting because of runningtime limitations...`)
         binanceWorker.restart()
       }
-      console.log(
-        '\nSTATUS: Binance Worker:\n',
-        `- Total updates: ${binanceWorker.totalUpdates}\n`,
-        `- Running time: ${binanceWorker.runningTime('seconds')} seconds (${binanceWorker.runningTime('hours')} hours)\n`,
-        `- Time to restart: ${binanceWorker.timeToRestart()}\n`,
-        `- Last update: ${binanceWorker.lastUpdateFromNow()}\n`,
-        `- Started since: ${binanceWorker.startedAt}\n`,
-        `- Restarted at: ${binanceWorker.restartedAt}\n`,
-        `- Last error at: ${binanceWorker.lastErrorAt}\n`
-      )
+      logger(binanceWorker)
     }
 
     if (bittrexWorker.startedAt) {
-      console.log(
-        '\nSTATUS: Bittrex Worker:\n',
-        `- Total updates: ${bittrexWorker.totalUpdates}\n`,
-        `- Running time: ${bittrexWorker.runningTime('seconds')} seconds (${bittrexWorker.runningTime('hours')} hours)\n`,
-        `- Time to restart: 0\n`,
-        `- Last update: ${bittrexWorker.lastUpdateFromNow()}\n`,
-        `- Started since: ${bittrexWorker.startedAt}\n`,
-        `- Restarted at: ${bittrexWorker.restartedAt}\n`,
-        `- Last error at: ${bittrexWorker.lastErrorAt}\n`
-      )
+      logger(bittrexWorker)
     }
 
     if (krakenWorker.startedAt) {
-      console.log(
-        '\nSTATUS: Kraken Worker:\n',
-        `- Total updates: ${krakenWorker.totalUpdates}\n`,
-        `- Running time: ${krakenWorker.runningTime('seconds')} seconds (${krakenWorker.runningTime('hours')} hours)\n`,
-        `- Time to restart: 0\n`,
-        `- Last update: ${krakenWorker.lastUpdateFromNow()}\n`,
-        `- Started since: ${krakenWorker.startedAt}\n`,
-        `- Restarted at: ${krakenWorker.restartedAt}\n`,
-        `- Last error at: ${krakenWorker.lastErrorAt}\n`
-      )
+      logger(krakenWorker)
     }
 
     if (bitfinexWorker.startedAt) {
-      console.log(
-        '\nSTATUS: Bitfinex Worker:\n',
-        `- Total updates: ${bitfinexWorker.totalUpdates}\n`,
-        `- Running time: ${bitfinexWorker.runningTime('seconds')} seconds (${bitfinexWorker.runningTime('hours')} hours)\n`,
-        `- Time to restart: 0\n`,
-        `- Last update: ${bitfinexWorker.lastUpdateFromNow()}\n`,
-        `- Started since: ${bitfinexWorker.startedAt}\n`,
-        `- Restarted at: ${bitfinexWorker.restartedAt}\n`,
-        `- Last error at: ${bitfinexWorker.lastErrorAt}\n`
-      )
+      logger(bitfinexWorker)
+    }
+
+    if (poloniexWorker.startedAt) {
+      logger(poloniexWorker)
     }
   }, 5000)
 })
+
+
+function logger (workerInstance) {
+  console.log(
+    `\nSTATUS: ${workerInstance.exchangeName} Worker:\n`,
+    `- Total updates: ${workerInstance.totalUpdates}\n`,
+    `- Running time: ${workerInstance.runningTime('seconds')} seconds (${workerInstance.runningTime('hours')} hours)\n`,
+    `- Time to restart: 0\n`,
+    `- Last update: ${workerInstance.lastUpdateFromNow()}\n`,
+    `- Started since: ${workerInstance.startedAt}\n`,
+    `- Restarted at: ${workerInstance.restartedAt}\n`,
+    `- Last error at: ${workerInstance.lastErrorAt}\n`
+  )
+}

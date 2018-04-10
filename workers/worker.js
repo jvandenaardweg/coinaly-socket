@@ -105,12 +105,13 @@ class Worker {
         // This callback fires once the report has been sent to Sentry
         console.log('\nWorker Error: Unhandled exception captured by Sentry:\n')
         console.log('==========\n')
+        console.log(e.message)
+        console.log('\n==========\n')
         if (sendErr) {
           console.error('Worker Error:', 'Failed to send captured exception to Sentry');
         } else {
           console.log('Worker Error:', 'Captured exception and send to Sentry successfully');
         }
-        console.log('\n==========\n')
       });
     }
   }

@@ -5,7 +5,7 @@ API Docs: https://github.com/binance-exchange/binance-official-api-docs/blob/mas
 const Worker = require('./worker')
 const WebSocket = require('ws')
 const redis = require('../redis')
-const TransformBinance = require('../transformations/binance')
+// const TransformBinance = require('../transformations/binance')
 const Redis = require('ioredis');
 const pub = new Redis(process.env.REDIS_URL);
 const moment = require('moment')

@@ -1,13 +1,12 @@
 {
-  "name": "socketcluster-sample",
-  "description": "A sample SocketCluster app",
+  "name": "coinaly-socket",
+  "description": "Websocket server for coinaly.io",
   "version": "1.0.0",
-  "contributors": [
-    {
-      "name": "Jonathan Gros-Dubois",
-      "email": "grosjona@yahoo.com.au"
-    }
-  ],
+  "scripts": {
+    "start": "./node_modules/forever/bin/forever websocket-server.js",
+    "start:docker": "node socketcluster/dockerwait.js && node ${SOCKETCLUSTER_MASTER_CONTROLLER:-server.js}",
+    "start:workers": "./node_modules/forever/bin/forever workers.js"
+  },
   "dependencies": {
     "axios": "^0.18.0",
     "ccxt": "^1.12.10",
@@ -33,18 +32,5 @@
     "socketcluster": "^11.1.0",
     "socketcluster-client": "^11.0.0",
     "ws": "^5.1.0"
-  },
-  "keywords": [
-    "websocket",
-    "server",
-    "realtime",
-    "cluster",
-    "scalable"
-  ],
-  "readmeFilename": "README.md",
-  "scripts": {
-    "start": "node server.js",
-    "start:docker": "node dockerwait.js && node ${SOCKETCLUSTER_MASTER_CONTROLLER:-server.js}",
-    "start:workers": "./node_modules/forever/bin/forever workers.js"
   }
 }

@@ -1,55 +1,9 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>SocketCluster</title>
-    <link href="//fonts.googleapis.com/css?family=Roboto:100,300" rel="stylesheet" type="text/css">
-    <link rel="icon" type="image/png" href="/favicon.ico">
-    <script type="text/javascript" src="/socketcluster.js"></script>
+    <title>Socket Status</title>
+    <script type="text/javascript" src="/js/socketcluster.js"></script>
     <style>
-      html {
-        height: 100%;
-      }
-      body {
-        margin: 0;
-        padding: 0;
-        width: 100%;
-        height: 100%;
-        color: #666666;
-        display: table;
-        font-weight: 100;
-        font-family: 'Roboto', Helvetica, sans-serif;
-      }
-      a {
-        font-weight: 300;
-        color: #72B963;
-      }
-      .container {
-        display: table-cell;
-        text-align: center;
-        vertical-align: middle;
-      }
-      .content {
-        text-align: center;
-        display: inline-block;
-      }
-
-      .title {
-        font-size: 96px;
-        margin-bottom: 20px;
-      }
-
-      .text {
-        font-size: 24px;
-        margin-bottom: 20px;
-      }
-      .small {
-        font-size: 18px;
-      }
-
-      .github-button {
-        padding-top: 10px;
-      }
-
       #response {
         word-break: break-word;
         height: 300px;
@@ -59,17 +13,11 @@
     </style>
   </head>
   <body>
-    <div class="container">
-      <div class="content">
-        <div class="title">
-          SocketCluster
-        </div>
-      </div>
 
-      <pre id="response">
-        pre
-      </pre>
-    </div>
+    <pre id="response">
+      Waiting...
+    </pre>
+
     <script type="text/javascript">
       // Initiate the connection to the server
       var socket = socketCluster.connect();

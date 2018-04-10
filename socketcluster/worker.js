@@ -1,28 +1,19 @@
-require('dotenv').config();
-var Raven = require('raven');
-Raven.config('https://386d9fe693df4a56b26b1a549d0372a0:f6d8e784e378493e8cf1556660b1cad6@sentry.io/711243').install();
-var SCWorker = require('socketcluster/scworker');
-var express = require('express');
-var serveStatic = require('serve-static');
-var path = require('path');
-var morgan = require('morgan');
-var healthChecker = require('sc-framework-health-check');
-var interval = require('interval-promise');
-var axios = require('axios');
-var ccxt = require('ccxt');
-var md5 = require('md5');
-var redis = require('./redis');
-// var Binance = require('./workers/binance');
-// var Bittrex = require('./workers/bittrex');
-
+require('dotenv').config()
+const Raven = require('raven')
+Raven.config('https://386d9fe693df4a56b26b1a549d0372a0:f6d8e784e378493e8cf1556660b1cad6@sentry.io/711243').install()
+const SCWorker = require('socketcluster/scworker')
+const express = require('express')
+const serveStatic = require('serve-static')
+const path = require('path')
+const morgan = require('morgan')
+const healthChecker = require('sc-framework-health-check')
+const interval = require('interval-promise')
+const axios = require('axios')
+const ccxt = require('ccxt')
+const md5 = require('md5')
+const redis = require('../redis')
 const Redis = require('ioredis')
 const redisSub = new Redis(process.env.REDIS_URL)
-
-// var binanceWorker = new Binance()
-// binanceWorker.start()
-
-// var bittrexWorker = new Bittrex()
-// bittrexWorker.start()
 
 class Worker extends SCWorker {
   run() {
@@ -42,7 +33,7 @@ class Worker extends SCWorker {
       // available formats.
       app.use(morgan('dev'));
     }
-    app.use(serveStatic(path.resolve(__dirname, 'public')));
+    app.use(serveStatic(path.resolve(__dirname, '../public')));
 
     // Add GET /health-check express route
     healthChecker.attach(this, app);
@@ -103,8 +94,6 @@ class Worker extends SCWorker {
     });
   }
 }
-
-
 
 function getCachedData (keyName, fieldName) {
   return redis.hget(keyName, fieldName)

@@ -42,17 +42,17 @@ class Worker extends SCWorker {
 
     var count = 0;
 
-    redisSub.subscribe('exchangeMarketsUpdate');
+    redisSub.subscribe('exchangeTickersUpdate');
 
     redisSub.on('message', function (channel, message) {
       const exchangeName = message
       const event = channel
 
-      if (event === 'exchangeMarketsUpdate') {
-        getCachedData(`exchange:${exchangeName}:markets`, 'all')
+      if (event === 'exchangeTickersUpdate') {
+        getCachedData(`exchange:${exchangeName}:tickers`, 'all')
         .then(result => {
-          console.log('Socketcluster:', `Publish: markets--${exchangeName}`);
-          scServer.exchange.publish(`markets--${exchangeName}`, {
+          console.log('Socketcluster:', `Publish: tickers--${exchangeName}`);
+          scServer.exchange.publish(`tickers--${exchangeName}`, {
             exchange: exchangeName,
             data: result
           });

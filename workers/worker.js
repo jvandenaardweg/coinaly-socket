@@ -57,19 +57,19 @@ class Worker {
     }, 2000, {stopOnError: false})
   }
 
-  async cacheTickers (marketsData) {
+  async cacheTickers (tickersData) {
     try {
-      const totalMarkets = (typeof marketsData === 'string') ? JSON.parse(marketsData).length : Object.keys(marketsData).length
-      const marketsDataString = (typeof marketsData === 'string') ? marketsData : JSON.stringify(marketsData)
+      const totalTickers = (typeof tickersData === 'string') ? JSON.parse(tickersData).length : Object.keys(tickersData).length
+      const tickersDataString = (typeof tickersData === 'string') ? tickersData : JSON.stringify(tickersData)
 
-      const cachedResult = await redis.hget(`exchange:${this.exchangeNameLowerCased}:markets`, 'all')
+      const cachedResult = await redis.hget(`exchange:${this.exchangeNameLowerCased}:tickers`, 'all')
       const stringifedCachedResult = JSON.stringify(cachedResult)
 
       // If the data changed, store it in Redis
-      if (md5(marketsDataString) !== md5(stringifedCachedResult)) {
-        await redis.hset(`exchange:${this.exchangeNameLowerCased}:markets`, 'all', marketsDataString)
+      if (md5(tickersDataString) !== md5(stringifedCachedResult)) {
+        await redis.hset(`exchange:${this.exchangeNameLowerCased}:tickers`, 'all', tickersDataString)
         this.redisPublishChange(this.exchangeNameLowerCased)
-        console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Markets', totalMarkets)
+        console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Tickers', totalTickers)
       }
     } catch(e) {
       console.log(`${this.exchangeName} Worker:`, 'Error getting cached market data to compare', this.exchangeName, e)
@@ -77,7 +77,7 @@ class Worker {
   }
 
   redisPublishChange () {
-    redisPub.publish('exchangeMarketsUpdate', this.exchangeNameLowerCased)
+    redisPub.publish('exchangeTickersUpdate', this.exchangeNameLowerCased)
   }
 
   handleCCXTExchangeError (ccxt, e) {

@@ -28,6 +28,7 @@ class Worker {
     this.cacheKey = {
      'tickers': `exchange:${this.exchangeSlug}:tickers`
     }
+    redis.hset(this.cacheKey['tickers'], 'startedAt', this.this.startedAt)
   }
 
   runningTime (unitOfTime) {
@@ -61,26 +62,32 @@ class Worker {
 
   setLastUpdateAt () {
     this.lastUpdateAt = new Date()
+    redis.hset(this.cacheKey['tickers'], 'lastUpdateAt', this.lastUpdateAt)
   }
 
   setLastErrorAt () {
     this.lastErrorAt = new Date()
+    redis.hset(this.cacheKey['tickers'], 'lastErrorAt', this.lastErrorAt)
   }
 
   setLastCheckedAt () {
     this.lastCheckedAt = new Date()
+    redis.hset(this.cacheKey['tickers'], 'lastCheckedAt', this.lastCheckedAt)
   }
 
   setTotalUpdates () {
     this.totalUpdates = this.totalUpdates + 1
+    redis.hset(this.cacheKey['tickers'], 'totalUpdates', this.totalUpdates)
   }
 
   setTotalErrors () {
     this.totalErrors = this.totalErrors + 1
+    redis.hset(this.cacheKey['tickers'], 'totalErrors', this.totalErrors)
   }
 
   setLastResetAt () {
     this.lastResetAt = new Date()
+    redis.hset(this.cacheKey['tickers'], 'lastResetAt', this.lastResetAt)
   }
 
   createCCXTInstance () {
@@ -178,6 +185,7 @@ class Worker {
     this.setLastErrorAt()
     this.setTotalErrors()
     console.log('CCXT error', e)
+    redis.hset(this.cacheKey['tickers'], 'errorMessage', e.mesage)
     let message
     let reason = null
     let exchangeErrorCode = null

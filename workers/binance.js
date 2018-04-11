@@ -2,6 +2,7 @@
 API Docs: https://github.com/binance-exchange/binance-official-api-docs/blob/master/web-socket-streams.md
 */
 "use strict";
+require('dotenv').config()
 const Worker = require('./worker')
 const WebSocket = require('ws')
 const redis = require('../redis')

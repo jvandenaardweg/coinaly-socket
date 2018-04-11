@@ -5,7 +5,24 @@
   "scripts": {
     "start": "./node_modules/forever/bin/forever websocket-server.js",
     "start:docker": "node socketcluster/dockerwait.js && node ${SOCKETCLUSTER_MASTER_CONTROLLER:-server.js}",
-    "start:workers": "./node_modules/forever/bin/forever workers.js"
+    "start:workers": "./node_modules/forever/bin/forever workers.js",
+    "test": "jest",
+    "test:watch": "jest --watch"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js"
+    ],
+    "moduleNameMapper": {
+      "^@/(.*)$": "<rootDir>/app/$1"
+    },
+    "collectCoverageFrom": [
+      "app/**/*.{js}",
+      "!**/node_modules/**"
+    ],
+    "testEnvironment": "jest-environment-node",
+    "coverageDirectory": "<rootDir>/test/unit/coverage",
+    "collectCoverage": true
   },
   "dependencies": {
     "axios": "^0.18.0",
@@ -16,6 +33,7 @@
     "forever": "^0.15.3",
     "interval-promise": "^1.1.1",
     "ioredis": "^3.2.2",
+    "jest": "^22.4.3",
     "joi": "^13.1.2",
     "md5": "^2.2.1",
     "minimist": "1.1.0",

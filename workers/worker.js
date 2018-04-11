@@ -10,8 +10,8 @@ const interval = require('interval-promise')
 
 class Worker {
   constructor (name) {
-    this.exchangeName = name
-    this.exchangeNameLowerCased = this.exchangeName.toLowerCase()
+    this.exchangeName = name || 'Unknown'
+    this.exchangeSlug = this.exchangeName.toLowerCase()
     this.redisPub = redisPub
     this.startedAt = new Date()
     this.restartNow = false
@@ -20,6 +20,9 @@ class Worker {
     this.lastUpdateAt = null
     this.lastErrorAt = null
     this.restartAfterHours = null
+    this.cacheKey = {
+     'tickers': `exchange:${this.exchangeSlug}:tickers`
+    }
   }
 
   runningTime (unitOfTime) {
@@ -44,31 +47,55 @@ class Worker {
     }
   }
 
+  setLastUpdateAt () {
+    this.lastUpdateAt = new Date()
+  }
+
+  setTotalUpdates () {
+    this.totalUpdates = this.totalUpdates + 1
+  }
+
   startInterval (ccxtMethod, intervalTime = 2000) {
     interval(async () => {
       try {
         const result = await this.ccxt[ccxtMethod]()
-        this.totalUpdates = this.totalUpdates + 1
-        this.lastUpdateAt = new Date()
-        this.cacheTickers(result, this.exchangeName)
+        this.setTotalUpdates()
+        this.setLastUpdateAt()
+        this.cacheTickers(result)
       } catch (e) {
         this.handleCCXTExchangeError(this.ccxt, e)
       }
     }, intervalTime, {stopOnError: false})
   }
 
+  stringifyData (data) {
+    return (typeof data === 'string') ? data : JSON.stringify(data)
+  }
+
+  getDataLength (data) {
+    return (typeof data === 'string') ? JSON.parse(data).length : Object.keys(data).length
+  }
+
+  isDataChanged (left, right) {
+    return md5(left) !== md5(right)
+  }
+
   async cacheTickers (tickersData) {
     try {
-      const totalTickers = (typeof tickersData === 'string') ? JSON.parse(tickersData).length : Object.keys(tickersData).length
-      const tickersDataString = (typeof tickersData === 'string') ? tickersData : JSON.stringify(tickersData)
+      let stringifedCachedResult = null
+      const totalTickers = this.getDataLength(tickersData)
+      const tickersDataString = this.stringifyData(tickersData)
 
-      const cachedResult = await redis.hget(`exchange:${this.exchangeNameLowerCased}:tickers`, 'all')
-      const stringifedCachedResult = JSON.stringify(cachedResult)
+      const cachedResult = await redis.hget(this.cacheKey['tickers'], 'all')
+
+      if (cachedResult) {
+        stringifedCachedResult = JSON.stringify(cachedResult)
+      }
 
       // If the data changed, store it in Redis
-      if (md5(tickersDataString) !== md5(stringifedCachedResult)) {
-        await redis.hset(`exchange:${this.exchangeNameLowerCased}:tickers`, 'all', tickersDataString)
-        this.redisPublishChange(this.exchangeNameLowerCased)
+      if (this.isDataChanged(tickersDataString, stringifedCachedResult)) {
+        await redis.hset(this.cacheKey['tickers'], 'all', tickersDataString)
+        this.redisPublishChange(this.exchangeSlug)
         console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Tickers', totalTickers)
       }
     } catch(e) {
@@ -77,7 +104,7 @@ class Worker {
   }
 
   redisPublishChange () {
-    redisPub.publish('exchangeTickersUpdate', this.exchangeNameLowerCased)
+    redisPub.publish('exchangeTickersUpdate', this.exchangeSlug)
   }
 
   handleCCXTExchangeError (ccxt, e) {

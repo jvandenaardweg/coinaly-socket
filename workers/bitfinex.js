@@ -17,7 +17,8 @@ class Bitfinex extends Worker {
   }
 
   start () {
-    this.startInterval('fetchTickers')
+    // Bitfinex Rate Limiting: https://docs.bitfinex.com/v2/docs/getting-started
+    this.startInterval('fetchTickers', 5000)
   }
 }
 

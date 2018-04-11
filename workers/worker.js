@@ -44,7 +44,7 @@ class Worker {
     }
   }
 
-  startInterval (ccxtMethod) {
+  startInterval (ccxtMethod, intervalTime = 2000) {
     interval(async () => {
       try {
         const result = await this.ccxt[ccxtMethod]()
@@ -54,7 +54,7 @@ class Worker {
       } catch (e) {
         this.handleCCXTExchangeError(this.ccxt, e)
       }
-    }, 2000, {stopOnError: false})
+    }, intervalTime, {stopOnError: false})
   }
 
   async cacheTickers (tickersData) {

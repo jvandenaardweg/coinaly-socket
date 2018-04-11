@@ -28,7 +28,7 @@ class Worker {
     this.cacheKey = {
      'tickers': `exchange:${this.exchangeSlug}:tickers`
     }
-    redis.hset(this.cacheKey['tickers'], 'startedAt', this.this.startedAt)
+    redis.hset(this.cacheKey['tickers'], 'startedAt', this.startedAt)
   }
 
   runningTime (unitOfTime) {

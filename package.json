@@ -26,7 +26,8 @@
   },
   "dependencies": {
     "axios": "^0.18.0",
-    "ccxt": "^1.12.10",
+    "ccxt": "^1.12.149",
+    "cli-table": "^0.3.1",
     "connect": "3.0.1",
     "dotenv": "^5.0.1",
     "express": "4.14.0",
@@ -47,6 +48,7 @@
     "scc-broker-client": "^3.0.0",
     "serve-static": "1.11.2",
     "signalr-client": "0.0.17",
+    "socket.io-client": "^2.1.0",
     "socketcluster": "^11.1.0",
     "socketcluster-client": "^11.0.0",
     "ws": "^5.1.0"

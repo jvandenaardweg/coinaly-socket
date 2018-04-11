@@ -8,6 +8,7 @@ const redisPub = new Redis(process.env.REDIS_URL)
 const md5 = require('md5')
 const moment = require('moment')
 const interval = require('interval-promise')
+const ccxt = require('ccxt')
 
 class Worker {
   constructor (name) {
@@ -20,14 +21,24 @@ class Worker {
     this.totalUpdates = 0
     this.lastUpdateAt = null
     this.lastErrorAt = null
+    this.lastCheckedAt = null
+    this.totalErrors = 0
     this.restartAfterHours = null
+    this.lastResetAt = null
     this.cacheKey = {
      'tickers': `exchange:${this.exchangeSlug}:tickers`
     }
   }
 
   runningTime (unitOfTime) {
-    if (this.startedAt) return moment().diff(this.startedAt, unitOfTime) // seconds, hours, minutes etc...
+    let timeToUse
+    if (this.restartedAt) {
+      timeToUse = this.restartedAt
+    } else {
+      timeToUse = this.startedAt
+    }
+
+    if (timeToUse) return moment().diff(timeToUse, unitOfTime) // seconds, hours, minutes etc...
     return 0
   }
 
@@ -52,19 +63,68 @@ class Worker {
     this.lastUpdateAt = new Date()
   }
 
+  setLastErrorAt () {
+    this.lastErrorAt = new Date()
+  }
+
+  setLastCheckedAt () {
+    this.lastCheckedAt = new Date()
+  }
+
   setTotalUpdates () {
     this.totalUpdates = this.totalUpdates + 1
   }
 
+  setTotalErrors () {
+    this.totalErrors = this.totalErrors + 1
+  }
+
+  setLastResetAt () {
+    this.lastResetAt = new Date()
+  }
+
+  createCCXTInstance () {
+    if (this.ccxt && this.ccxt[this.exchangeSlug]) {
+      delete this.ccxt[this.exchangeSlug]
+    }
+
+    this.ccxt = {}
+
+    this.ccxt = new ccxt[this.exchangeSlug]({
+      enableRateLimit: true,
+      timeout: 15000
+    })
+  }
+
+  deleteCCXTInstance () {
+    if (this.ccxt[this.exchangeSlug]) {
+      delete this.ccxt[this.exchangeSlug]
+    }
+  }
+
+  resetCCXT () {
+    this.setLastResetAt()
+    this.deleteCCXTInstance()
+    this.createCCXTInstance()
+    this.startInterval('fetchTickers')
+  }
+
   startInterval (ccxtMethod, intervalTime = 2000) {
-    interval(async () => {
-      try {
-        const result = await this.ccxt[ccxtMethod]()
-        this.setTotalUpdates()
-        this.setLastUpdateAt()
-        this.cacheTickers(result)
-      } catch (e) {
-        this.handleCCXTExchangeError(this.ccxt, e)
+    interval(async (iteration, stop) => {
+      if (this.shouldRestartNow()) {
+        this.resetCCXT()
+      } else {
+        try {
+          this.setLastCheckedAt()
+          const result = await this.ccxt[ccxtMethod]()
+          if (result) {
+            this.setTotalUpdates()
+            this.setLastUpdateAt()
+            this.cacheTickers(result)
+          }
+        } catch (e) {
+          this.handleCCXTExchangeError(this.ccxt, e)
+        }
       }
     }, intervalTime, {stopOnError: false})
   }
@@ -78,7 +138,11 @@ class Worker {
   }
 
   isDataChanged (left, right) {
-    return md5(left) !== md5(right)
+    if (left && right) {
+      return md5(left) !== md5(right)
+    } else {
+      return true
+    }
   }
 
   async cacheTickers (tickersData) {
@@ -100,6 +164,8 @@ class Worker {
         console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Tickers', totalTickers)
       }
     } catch(e) {
+      this.setLastErrorAt()
+      this.setTotalErrors()
       console.log(`${this.exchangeName} Worker:`, 'Error getting cached market data to compare', this.exchangeName, e)
     }
   }
@@ -109,7 +175,8 @@ class Worker {
   }
 
   handleCCXTExchangeError (ccxt, e) {
-    this.lastErrorAt = new Date()
+    this.setLastErrorAt()
+    this.setTotalErrors()
     console.log('CCXT error', e)
     let message
     let reason = null

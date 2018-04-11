@@ -1,9 +1,8 @@
 const Worker = require('./worker')
-const ccxt = require('ccxt')
 
-class Bittrex extends Worker {
+class Okex extends Worker {
   constructor () {
-    super('Bittrex')
+    super('Okex')
 
     try {
       this.createCCXTInstance()
@@ -17,4 +16,4 @@ class Bittrex extends Worker {
   }
 }
 
-module.exports = Bittrex
+module.exports = Okex

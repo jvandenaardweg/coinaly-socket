@@ -1,88 +1,109 @@
 require('newrelic')
-require('dotenv').config();
-var Raven = require('raven');
+require('dotenv').config()
+const Raven = require('raven')
 Raven.config(process.env.SENTRY_DSN, {
   captureUnhandledRejections: true,
   autoBreadcrumbs: true
 }).install()
+const moment = require('moment')
+const Table = require('cli-table')
 
+// Wrap it in a Raven context, so unhandled exceptions are logged
 Raven.context(function () {
+  let workers = []
+
   const Binance = require('./workers/binance')
   const Bittrex = require('./workers/bittrex')
-  const Gdax = require('./workers/gdax')
-  const Gemini = require('./workers/gemini')
   const Kraken = require('./workers/kraken')
   const Bitfinex = require('./workers/bitfinex')
   const Poloniex = require('./workers/poloniex')
   const Hitbtc = require('./workers/hitbtc')
   const Kucoin = require('./workers/kucoin')
-  const moment = require('moment')
+  const Okex = require('./workers/okex')
+  const Bithumb = require('./workers/bithumb')
+  const Lbank = require('./workers/lbank')
+  const Bitz = require('./workers/bitz')
+  const Liqui = require('./workers/liqui')
+  const Cryptocompare = require('./workers/cryptocompare')
 
-  const binanceWorker = new Binance()
-  binanceWorker.start()
+  // Order reflects trading volumes on Coinmarketcap at 12 apr. 2018
+  workers['binance'] = new Binance()
+  // Huobi (not supporting fetchTickers)
+  workers['okex'] = new Okex()
+  // Upbit
+  workers['bitfinex'] = new Bitfinex()
+  workers['bithumb'] = new Bithumb()
+  workers['bittrex'] = new Bittrex()
+  workers['hitbtc'] = new Hitbtc()
+  workers['lbank'] = new Lbank()
+  workers['bitz'] = new Bitz()
+  workers['kraken'] = new Kraken()
+  // GDAX
+  // BTCBOX
+  // Bitstamp
+  // ZB.com
+  // Bitc Blockchain
+  // Bibox
+  // Gate.io
+  // Wex
+  workers['poloniex'] = new Poloniex()
+  // Bitflyer
+  // Coinbene
+  // BTCC
+  // BCEX
+  workers['kucoin'] = new Kucoin()
+  workers['liqui'] = new Liqui()
+  // workers['cryptocompare'] = new Cryptocompare()
+  // workers['cryptocompare'].start()
 
-  const bittrexWorker = new Bittrex()
-  bittrexWorker.start()
-
-  // const gdaxWorker = new Gdax()
-  // gdaxWorker.start()
-
-  // const geminiWorker = new Gemini()
-  // geminiWorker.start()
-
-  const krakenWorker = new Kraken()
-  krakenWorker.start()
-
-  const bitfinexWorker = new Bitfinex()
-  bitfinexWorker.start()
-
-  const poloniexWorker = new Poloniex()
-  poloniexWorker.start()
-
-  const hitbtcWorker = new Hitbtc()
-  hitbtcWorker.start()
-
-  const kucoinWorker = new Kucoin()
-  kucoinWorker.start()
+  Object.keys(workers).forEach((workerName, index) => {
+    workers[workerName].start()
+  })
 
   // Report data to console for debugging and status check
   setInterval(() => {
-    if (binanceWorker.startedAt) {
-      if (binanceWorker.shouldRestartNow()) {
-        console.log(`\nSTATUS: Binance Worker: Restarting because of runningtime limitations...`)
-        binanceWorker.restart()
+
+    // Log status to console from each worker
+    Object.keys(workers).forEach((workerName, index) => {
+      logger(workers[workerName])
+
+      // Per worker we can determine when we want a restart
+      // Restart the worker if we should
+      if (workers[workerName].shouldRestartNow()) {
+        console.log(`\nSTATUS: ${workers[workerName].exchangeName} Worker: Restarting because of runningtime limitations...`)
+        workers[workerName].restart()
       }
-      logger(binanceWorker)
-    }
-
-    if (bittrexWorker.startedAt) {
-      logger(bittrexWorker)
-    }
-
-    if (krakenWorker.startedAt) {
-      logger(krakenWorker)
-    }
-
-    if (bitfinexWorker.startedAt) {
-      logger(bitfinexWorker)
-    }
-
-    if (poloniexWorker.startedAt) {
-      logger(poloniexWorker)
-    }
-
-    if (hitbtcWorker.startedAt) {
-      logger(hitbtcWorker)
-    }
-
-    if (kucoinWorker.startedAt) {
-      logger(kucoinWorker)
-    }
+    })
   }, 5000)
 })
 
 
+
 function logger (workerInstance) {
+
+  // instantiate
+  // var table = new Table({
+  //   head: ['Exchange', 'Updates', 'Running time', 'Time to restart', 'Last update', 'Started since', 'Restarted at', 'Last error at']
+  // // , colWidths: [100, 200]
+  // })
+
+  // // table is an Array, so you can `push`, `unshift`, `splice` and friends 
+  // table.push(
+  //   [
+  //     workerInstance.exchangeName,
+  //     workerInstance.totalUpdates,
+  //     `${workerInstance.runningTime('seconds')} seconds (${workerInstance.runningTime('hours')} hours)`,
+  //     workerInstance.timeToRestart(),
+  //     workerInstance.lastUpdateFromNow(),
+  //     0,
+  //     0,
+  //     0
+  //   ]
+  // , ['First value', 'Second value', 'First value', 'Second value', 'First value', 'Second value', 'First value', 'Second value']
+  // )
+
+  // console.log(table.toString());
+
   console.log(
     `\nSTATUS: ${workerInstance.exchangeName} Worker:\n`,
     `- Total updates: ${workerInstance.totalUpdates}\n`,

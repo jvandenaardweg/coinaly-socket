@@ -6,11 +6,7 @@ class Bitfinex extends Worker {
     super('Bitfinex')
 
     try {
-      this.ccxt = new ccxt.bitfinex({
-        enableRateLimit: true,
-        timeout: 15000,
-        verbose: false
-      })
+      this.createCCXTInstance()
     } catch (e) {
       console.log(e)
     }

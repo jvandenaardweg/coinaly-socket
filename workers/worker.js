@@ -49,7 +49,11 @@ class Worker {
   }
 
   shouldRestartNow () {
-    return this.runningTime('hours') > this.restartAfterHours // Restart this worker after 12 hours (Binance requires to restart the websocket connection after 24 hours)
+    if (this.restartAfterHours) {
+      return this.runningTime('hours') > this.restartAfterHours
+    } else {
+      return false
+    }
   }
 
   timeToRestart () {

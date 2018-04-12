@@ -6,15 +6,10 @@ class Kraken extends Worker {
     super('Kraken')
 
     try {
-      this.ccxt = new ccxt.kraken({
-        enableRateLimit: true,
-        timeout: 15000,
-        verbose: false
-      })
+      this.createCCXTInstance()
     } catch (e) {
       console.log(e)
     }
-  }
 
   start () {
     this.startInterval('fetchTickers')

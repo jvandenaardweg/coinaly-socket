@@ -6,15 +6,10 @@ class Kucoin extends Worker {
     super('Kucoin')
 
     try {
-      this.ccxt = new ccxt.kucoin({
-        enableRateLimit: true,
-        timeout: 15000,
-        verbose: false
-      })
+      this.createCCXTInstance()
     } catch (e) {
       console.log(e)
     }
-  }
 
   start () {
     this.startInterval('fetchTickers')

@@ -6,15 +6,10 @@ class Poloniex extends Worker {
     super('Poloniex')
 
     try {
-      this.ccxt = new ccxt.poloniex({
-        enableRateLimit: true,
-        timeout: 15000,
-        verbose: false
-      })
+      this.createCCXTInstance()
     } catch (e) {
       console.log(e)
     }
-  }
 
   start () {
     this.startInterval('fetchTickers')

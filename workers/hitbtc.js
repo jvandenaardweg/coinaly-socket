@@ -6,15 +6,10 @@ class Hitbtc extends Worker {
     super('Hitbtc')
 
     try {
-      this.ccxt = new ccxt.hitbtc({
-        enableRateLimit: true,
-        timeout: 15000,
-        verbose: false
-      })
+      this.createCCXTInstance()
     } catch (e) {
       console.log(e)
     }
-  }
 
   start () {
     this.startInterval('fetchTickers')

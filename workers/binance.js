@@ -15,7 +15,7 @@ class Binance extends Worker {
   constructor () {
     super('Binance')
     this.websocketEndpoint = 'wss://stream.binance.com:9443/ws/!ticker@arr'
-    this.restartAfterHours = 12
+    this.restartAfterHours = 12 // Binance API docs state a Websocket connection gets disconnected after 24 hours. We just restart it way before that.
     this.transformer = new BinanceTransformer()
   }
 

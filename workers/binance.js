@@ -9,12 +9,14 @@ const redis = require('../redis')
 const Redis = require('ioredis');
 const pub = new Redis(process.env.REDIS_URL);
 const moment = require('moment')
+const BinanceTransformer = require('../transformers/binance')
 
 class Binance extends Worker {
   constructor () {
     super('Binance')
     this.websocketEndpoint = 'wss://stream.binance.com:9443/ws/!ticker@arr'
     this.restartAfterHours = 12
+    this.transformer = new BinanceTransformer()
   }
 
   handleWebsocketError (error) {
@@ -37,10 +39,16 @@ class Binance extends Worker {
     })
 
     this.websocket.on('message', (data) => {
-      // TransformBinance.transformMultiple(data)
+      let tickers
+      const json = JSON.parse(data)
+
+      tickers = json.map((ticker, index) => {
+        return this.transformer.transformObject(ticker)
+      })
+
       this.totalUpdates = this.totalUpdates + 1
       this.lastUpdateAt = new Date()
-      this.cacheTickers(data, this.exchangeName)
+      this.cacheTickers(tickers, this.exchangeName)
     })
   }
 }

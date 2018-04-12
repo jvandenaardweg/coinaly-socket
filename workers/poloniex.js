@@ -10,7 +10,8 @@ class Poloniex extends Worker {
     } catch (e) {
       console.log(e)
     }
-
+  }
+  
   start () {
     this.startInterval('fetchTickers')
   }

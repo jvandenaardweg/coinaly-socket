@@ -4,15 +4,10 @@ const ccxt = require('ccxt')
 class Poloniex extends Worker {
   constructor () {
     super('Poloniex')
-
-    try {
-      this.createCCXTInstance()
-    } catch (e) {
-      console.log(e)
-    }
   }
-  
+
   start () {
+    this.createCCXTInstance()
     this.startInterval('fetchTickers')
   }
 }

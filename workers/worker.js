@@ -101,10 +101,14 @@ class Worker {
 
     this.ccxt = {}
 
-    this.ccxt = new ccxt[this.exchangeSlug]({
-      enableRateLimit: true,
-      timeout: 15000
-    })
+    try {
+      this.ccxt = new ccxt[this.exchangeSlug]({
+        enableRateLimit: true,
+        timeout: 15000
+      })
+    } catch(e) {
+      this.handleCCXTExchangeError(e)
+    }
   }
 
   deleteCCXTInstance () {
@@ -185,11 +189,11 @@ class Worker {
     redisPub.publish('exchangeTickersUpdate', this.exchangeSlug)
   }
 
-  handleCCXTExchangeError (ccxt, e) {
+  handleCCXTExchangeError (e) {
     this.setLastErrorAt()
     this.setTotalErrors()
     console.log('CCXT error', e)
-    redis.hset(this.cacheKey['tickers'], 'errorMessage', e.mesage)
+    redis.hset(this.cacheKey['tickers'], 'errorMessage', e.message)
     let message
     let reason = null
     let exchangeErrorCode = null

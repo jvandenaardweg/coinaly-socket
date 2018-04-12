@@ -3,15 +3,10 @@ const Worker = require('./worker')
 class Bitz extends Worker {
   constructor () {
     super('Bitz')
-
-    try {
-      this.createCCXTInstance()
-    } catch (e) {
-      console.log(e)
-    }
   }
 
   start () {
+    this.createCCXTInstance()
     this.startInterval('fetchTickers')
   }
 }

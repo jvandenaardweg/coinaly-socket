@@ -16,7 +16,7 @@ class BinanceTransformer {
     // Transform each given Object
     return json.map((object, index) => {
       return this.transformSingleObject(object)
-    })[0]
+    })
   }
 
   transformSingleObject (input) {

@@ -192,8 +192,11 @@ class Worker {
   handleCCXTExchangeError (e) {
     this.setLastErrorAt()
     this.setTotalErrors()
-    console.log('CCXT error', e)
+    console.log('CCXT error', e.message)
     redis.hset(this.cacheKey['tickers'], 'errorMessage', e.message)
+
+    // TODO: restart worker when: CCXT error TypeError: Cannot read property 'symbol' of undefined
+
     let message
     let reason = null
     let exchangeErrorCode = null

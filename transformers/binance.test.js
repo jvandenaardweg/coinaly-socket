@@ -13,27 +13,29 @@ describe('transformers/binance.js', () => {
   })
 
   it('should create proper output object when giving an input object', () => {
-    expect(transformer.transformObject(sampleInput)).toMatchObject({
-      'symbol': 'BNBBTC',
-      'timestamp': 123456789,
-      'datetime': '1970-01-02T10:17:36.789Z',
-      'high': 0.0025,
-      'low': 0.001,
-      'bid': 0.0024,
-      'bidVolume': 10,
-      'ask': 0.0026,
-      'askVolume': 100,
-      'vwap': undefined,
-      'open': 0.001,
-      'close': 0.0025,
-      'last': 0.0025,
-      'previousClose': 0.0009,
-      'change': 0.0015,
-      'percentage': 250,
-      'average': undefined,
-      'baseVolume': 10000,
-      'quoteVolume': 18,
-      // 'info': input
+    expect(transformer.transformSingleObject(sampleInput)).toMatchObject({
+    'BNBBTC': {
+        'symbol': 'BNBBTC',
+        'timestamp': 123456789,
+        'datetime': '1970-01-02T10:17:36.789Z',
+        'high': 0.0025,
+        'low': 0.001,
+        'bid': 0.0024,
+        'bidVolume': 10,
+        'ask': 0.0026,
+        'askVolume': 100,
+        'vwap': undefined,
+        'open': 0.001,
+        'close': 0.0025,
+        'last': 0.0025,
+        'previousClose': 0.0009,
+        'change': 0.0015,
+        'percentage': 250,
+        'average': undefined,
+        'baseVolume': 10000,
+        'quoteVolume': 18,
+        'info': sampleInput
+      }
     })
   })
 

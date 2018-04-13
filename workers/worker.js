@@ -14,6 +14,7 @@ class Worker {
   constructor (name) {
     this.exchangeName = name || 'Unknown'
     this.exchangeSlug = this.exchangeName.toLowerCase()
+    this.exchangeCapitalized = this.exchangeName.toUpperCase()
     this.redisPub = redisPub
     this.startedAt = new Date()
     this.totalErrors = 0
@@ -277,18 +278,21 @@ class Worker {
       // Returing a new Object like: "ETH/BTC": { string }
       const tickersStringHMSET = this.convertToHMSETString(tickers)
 
-      redis.hmset(this.cacheKey['tickers'], tickersStringHMSET)
+      // Store each ticker in it's own key
+      await redis.hmset(this.cacheKey['tickers'], tickersStringHMSET)
 
-      if (cachedResult) {
-        stringifedCachedResult = JSON.stringify(cachedResult)
-      }
+      // Store object of all keys in "all"
+      await redis.hset(this.cacheKey['tickers'], 'all', tickersString)
 
-      // If the data changed, store it in Redis
-      if (this.isDataChanged(tickersString, stringifedCachedResult)) {
-        await redis.hset(this.cacheKey['tickers'], 'all', tickersString)
-        this.redisPublishChange(this.exchangeSlug)
-        console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Tickers', totalTickers)
-      }
+      // Publish change for each symbol
+      Object.keys(tickers).forEach(symbol => {
+        this.redisPublishChangeTicker(symbol, tickers[symbol])
+      })
+
+      // Publish change for exchange
+      this.redisPublishChangeExchange(tickers)
+
+      console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Tickers', totalTickers)
     } catch(e) {
       this.setLastErrorAt()
       this.setTotalErrors()
@@ -296,33 +300,15 @@ class Worker {
     }
   }
 
-  async cacheTicker (ticker) {
-    try {
-      let stringifedCachedResult = null
-      const tickerString = this.stringifyData(ticker)
-
-      const cachedResult = await redis.hget(this.cacheKey['tickers'], ticker.symbol)
-
-      if (cachedResult) {
-        stringifedCachedResult = JSON.stringify(cachedResult)
-      }
-
-      // If the data changed, store it in Redis
-      if (this.isDataChanged(tickerString, stringifedCachedResult)) {
-        await redis.hset(this.cacheKey['tickers'], ticker.symbol, tickerString)
-        this.redisPublishChange(this.exchangeSlug)
-        redisPub.publish('exchangeTickerUpdate', ticker.symbol)
-        // console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Ticker', ticker.symbol)
-      }
-    } catch(e) {
-      this.setLastErrorAt()
-      this.setTotalErrors()
-      console.log(`${this.exchangeName} Worker:`, 'Error getting cached market data to compare', this.exchangeName, e)
-    }
+  redisPublishChangeTicker (symbol, data = null) {
+    const eventData = (symbol) ? `${this.exchangeCapitalized}~${symbol}` : `${this.exchangeCapitalized}~ALL`
+    // console.log('Redis Publish Change:', eventData)
+    redisPub.publish(eventData, data)
   }
 
-  redisPublishChange () {
-    redisPub.publish('exchangeTickersUpdate', this.exchangeSlug)
+  redisPublishChangeExchange (tickers) {
+    // console.log('Redish Publish Change:', 'Exchange', this.exchangeCapitalized)
+    redisPub.publish(this.exchangeCapitalized, tickers)
   }
 
   async deleteCache (key) {

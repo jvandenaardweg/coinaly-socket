@@ -23,9 +23,10 @@ class Worker {
     this.lastErrorAt = null
     this.lastCheckedAt = null
     this.totalErrors = 0
+    this.totalReloadsMarkets = 0
     this.restartAfterHours = null
     this.lastResetAt = null
-    this.reloadMarketsAfterHours = 1 // Reload the markets data every hour
+    this.reloadMarketsAfterMinutes = 60 // Reload the markets data every hour
     this.lastReloadMarketsAt = null
     this.cacheKey = {
      'tickers': `exchanges:${this.exchangeSlug}:tickers`,
@@ -41,6 +42,16 @@ class Worker {
       timeToUse = this.restartedAt
     } else {
       timeToUse = this.startedAt
+    }
+
+    if (timeToUse) return moment().diff(timeToUse, unitOfTime) // seconds, hours, minutes etc...
+    return 0
+  }
+
+  runningTimeAfterLastReload (unitOfTime) {
+    let timeToUse
+    if (this.lastReloadMarketsAt) {
+      timeToUse = this.lastReloadMarketsAt
     }
 
     if (timeToUse) return moment().diff(timeToUse, unitOfTime) // seconds, hours, minutes etc...
@@ -66,8 +77,8 @@ class Worker {
   }
 
   shouldReloadMarketsNow () {
-    if (this.reloadMarketsAfterHours) {
-      return this.runningTime('hours') > this.reloadMarketsAfterHours
+    if (this.reloadMarketsAfterMinutes) {
+      return this.runningTimeAfterLastReload('minutes') > this.reloadMarketsAfterMinutes
     } else {
       return false
     }
@@ -82,8 +93,8 @@ class Worker {
   }
 
   timeToReloadMarkets () {
-    if (this.reloadMarketsAfterHours) {
-      return (this.reloadMarketsAfterHours * 60) - this.runningTime('minutes') + ' minutes'
+    if (this.reloadMarketsAfterMinutes) {
+      return this.reloadMarketsAfterMinutes - this.runningTimeAfterLastReload('minutes') + ' minutes'
     } else {
       return false
     }
@@ -119,6 +130,11 @@ class Worker {
     redis.hset(this.cacheKey['status'], 'lastResetAt', this.lastResetAt)
   }
 
+  setTotalReloadsMarkets () {
+    this.totalReloadsMarkets = this.totalReloadsMarkets + 1
+    redis.hset(this.cacheKey['status'], 'totalReloadsMarkets', this.totalReloadsMarkets)
+  }
+
   setLastReloadMarketsAt () {
     this.lastReloadMarketsAt = new Date()
     redis.hset(this.cacheKey['status'], 'lastReloadMarketsAt', this.lastReloadMarketsAt)
@@ -149,6 +165,7 @@ class Worker {
     try {
       const markets = await this.ccxt.loadMarkets()
       this.setLastReloadMarketsAt()
+      this.setTotalReloadsMarkets()
 
       // When we got markets, delete old cache, add new cache and return the markets
       if (Object.keys(markets).length) {
@@ -191,7 +208,7 @@ class Worker {
   startInterval (ccxtMethod, intervalTime = 2000) {
     interval(async (iteration, stop) => {
 
-      this.checkReloadMarkets()
+      await this.checkReloadMarkets()
 
       if (this.shouldRestartNow()) {
         this.resetCCXT()

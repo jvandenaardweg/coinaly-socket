@@ -106,6 +106,7 @@ function logger (workerInstance) {
     `\nSTATUS: ${workerInstance.exchangeName} Worker:\n`,
     `- Total updates: ${workerInstance.totalUpdates}\n`,
     `- Running time: ${workerInstance.runningTime('seconds')} seconds (${workerInstance.runningTime('hours')} hours)\n`,
+    `- Running time after reload: ${workerInstance.runningTimeAfterLastReload('seconds')} seconds\n`,
     `- Time to restart: ${workerInstance.timeToRestart()}\n`,
     `- Time to reload markets: ${workerInstance.timeToReloadMarkets()}\n`,
     `- Last update: ${workerInstance.lastUpdateFromNow()}\n`,

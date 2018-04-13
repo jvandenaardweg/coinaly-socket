@@ -72,7 +72,7 @@ describe('workers/worker.js', () => {
     worker.totalUpdates = 100
     worker.setTotalUpdates()
     expect(worker.totalUpdates).toBe(101)
-  })
+  }) 
 
   // it('should throw an error when exchange is not supported', () => {
   //   try {

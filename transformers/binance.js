@@ -2,16 +2,10 @@ const ccxt = require('ccxt')
 
 class BinanceTransformer {
   constructor(ccxt) {
-    // Load CCXT so we can use the build in methods to transform properties
     this.ccxt = ccxt
   }
 
   transformMultipleObjects (input) {
-    let objects
-    // If the input is a string, convert it to JSON, so we have an Object to work with
-
-
-    // Transform each given Object
     return input.reduce((result, object) => {
       result[this.getSymbolById(object.s)] = this.transformSingleObject(object)
       return result
@@ -49,22 +43,22 @@ class BinanceTransformer {
       'symbol': this.getSymbolById(input.s),
       'timestamp': timestamp,
       'datetime': iso8601,
-      'high': this.ccxt.safeFloat (input, 'h'),
-      'low': this.ccxt.safeFloat (input, 'l'),
-      'bid': this.ccxt.safeFloat (input, 'b'),
-      'bidVolume': this.ccxt.safeFloat (input, 'B'),
-      'ask': this.ccxt.safeFloat (input, 'a'),
-      'askVolume': this.ccxt.safeFloat (input, 'A'),
+      'high': this.ccxt.safeFloat(input, 'h'),
+      'low': this.ccxt.safeFloat(input, 'l'),
+      'bid': this.ccxt.safeFloat(input, 'b'),
+      'bidVolume': this.ccxt.safeFloat(input, 'B'),
+      'ask': this.ccxt.safeFloat(input, 'a'),
+      'askVolume': this.ccxt.safeFloat(input, 'A'),
       'vwap': undefined,
-      'open': this.ccxt.safeFloat (input, 'o'),
-      'close': this.ccxt.safeFloat (input, 'c'),
-      'last': this.ccxt.safeFloat (input, 'c'),
-      'previousClose': this.ccxt.safeFloat (input, 'x'),
-      'change': this.ccxt.safeFloat (input, 'p'),
-      'percentage': this.ccxt.safeFloat (input, 'P'),
+      'open': this.ccxt.safeFloat(input, 'o'),
+      'close': this.ccxt.safeFloat(input, 'c'),
+      'last': this.ccxt.safeFloat(input, 'c'),
+      'previousClose': this.ccxt.safeFloat(input, 'x'),
+      'change': this.ccxt.safeFloat(input, 'p'),
+      'percentage': this.ccxt.safeFloat(input, 'P'),
       'average': undefined,
-      'baseVolume': this.ccxt.safeFloat (input, 'v'),
-      'quoteVolume': this.ccxt.safeFloat (input, 'q'),
+      'baseVolume': this.ccxt.safeFloat(input, 'v'),
+      'quoteVolume': this.ccxt.safeFloat(input, 'q'),
       'info': input
     }
 

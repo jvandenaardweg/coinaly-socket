@@ -38,6 +38,7 @@
     "ioredis": "^3.2.2",
     "jest": "^22.4.3",
     "joi": "^13.1.2",
+    "jsonic": "^0.3.0",
     "md5": "^2.2.1",
     "minimist": "1.1.0",
     "moment": "^2.22.0",
@@ -54,6 +55,7 @@
     "socket.io-client": "^2.1.0",
     "socketcluster": "^11.1.0",
     "socketcluster-client": "^11.0.0",
-    "ws": "^5.1.0"
+    "ws": "^5.1.0",
+    "zlib": "^1.0.5"
   }
 }

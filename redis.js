@@ -23,10 +23,10 @@ redis.on('end', function () {
   console.log('Redis:', 'End.')
 })
 
-redis.monitor().then(function (monitor) {
-  monitor.on('monitor', function (time, args, source, database) {
-    console.log(`Redis: ${args[0]} -> ${args[1]}`)
-  })
-})
+// redis.monitor().then(function (monitor) {
+//   monitor.on('monitor', function (time, args, source, database) {
+//     console.log(`Redis: ${args[0]} -> ${args[1]}`)
+//   })
+// })
 
 module.exports = redis

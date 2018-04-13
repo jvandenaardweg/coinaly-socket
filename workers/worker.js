@@ -172,10 +172,13 @@ class Worker {
         // Delete the cache first, then add the new markets (essentially removing markets the exchange already removed)
         await this.deleteCache(this.cacheKey['markets'])
 
-        // Store each market in Redis as a seperate key
-        Object.keys(markets).forEach(symbol => {
-          redis.hset(this.cacheKey['markets'], symbol, JSON.stringify(markets[symbol]))
-        })
+        // Prepare the data for Redis HMSET
+        // Returing a new Object like: "ETH/BTC": { string }
+        const marketsStringHMSET = this.convertToHMSETString(markets)
+
+        // Use Redis HMSET to set all the keys at once
+        redis.hmset(this.cacheKey['markets'], marketsStringHMSET)
+
         console.log(`${this.exchangeName} Worker:`, 'Saved markets')
         return markets
       } else {
@@ -190,6 +193,16 @@ class Worker {
     if (this.ccxt[this.exchangeSlug]) {
       delete this.ccxt[this.exchangeSlug]
     }
+  }
+
+  convertToHMSETString (data) {
+    // Prepare the data for Redis HMSET
+    // Returing a new Object like: "ETH/BTC": { string }
+    // "ETH/BTC" will be the hash key
+    return Object.entries(data).reduce((result, object) => {
+      result[object[0]] = JSON.stringify(data[object[0]])
+      return result
+    }, {})
   }
 
   resetCCXT () {
@@ -252,10 +265,11 @@ class Worker {
 
       const cachedResult = await redis.hget(this.cacheKey['tickers'], 'all')
 
-      // Store each ticker as a seperate key in Redis
-      Object.keys(tickers).forEach(symbol => {
-        this.cacheTicker(tickers[symbol])
-      })
+      // Prepare the data for Redis HMSET
+      // Returing a new Object like: "ETH/BTC": { string }
+      const tickersStringHMSET = this.convertToHMSETString(tickers)
+
+      redis.hmset(this.cacheKey['tickers'], tickersStringHMSET)
 
       if (cachedResult) {
         stringifedCachedResult = JSON.stringify(cachedResult)
@@ -289,6 +303,7 @@ class Worker {
       if (this.isDataChanged(tickerString, stringifedCachedResult)) {
         await redis.hset(this.cacheKey['tickers'], ticker.symbol, tickerString)
         this.redisPublishChange(this.exchangeSlug)
+        redisPub.publish('exchangeTickerUpdate', ticker.symbol)
         // console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Ticker', ticker.symbol)
       }
     } catch(e) {

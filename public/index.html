@@ -14,6 +14,8 @@
   </head>
   <body>
 
+    <pre id="available-exchanges"></pre>
+    <pre id="available-channels"></pre>
     <pre id="response">
       Waiting...
     </pre>
@@ -30,10 +32,15 @@
         console.log('CONNECTED');
       });
 
-      // socket.on('rand', function (data) {
-      //   console.log('RANDOM STREAM: ' + data.rand);
-      // });
+      socket.on('availableExchanges', function (data) {
+        console.log('Available exchanges: ', data);
+        document.getElementById('available-exchanges').innerHTML = data
+      })
 
+      socket.on('availableChannels', function (data) {
+        console.log('Available channels: ', data);
+        document.getElementById('available-channels').innerHTML = data
+      })
 
 
       // var sampleChannel = socket.subscribe('sample');

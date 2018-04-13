@@ -66,6 +66,14 @@ class Worker extends SCWorker {
     scServer.on('connection', function (socket) {
       console.log('Socketcluster:', 'Client connection', socket.id)
 
+      const availableExchanges = ['bittrex', 'binance', 'bitfinex', 'bithumb', 'bitz', 'hitbtc']
+      const availableChannels = availableExchanges.map(exchangeSlug => {
+        return `tickers--${exchangeSlug}`
+      })
+      // Send the available exchanges and channels to the user
+      socket.emit('availableExchanges', availableExchanges)
+      socket.emit('availableChannels', availableChannels)
+
       // Some sample logic to show how to handle client events,
       // replace this with your own logic
 

@@ -130,6 +130,11 @@ class Worker {
     redis.hset(this.cacheKey['status'], 'lastResetAt', this.lastResetAt)
   }
 
+  setLastRestartedAt () {
+    this.lastRestartedAt = new Date()
+    redis.hset(this.cacheKey['status'], 'lastRestartedAt', this.lastRestartedAt)
+  }
+
   setTotalReloadsMarkets () {
     this.totalReloadsMarkets = this.totalReloadsMarkets + 1
     redis.hset(this.cacheKey['status'], 'totalReloadsMarkets', this.totalReloadsMarkets)

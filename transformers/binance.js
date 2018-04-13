@@ -9,10 +9,10 @@ class BinanceTransformer {
   transformMultipleObjects (input) {
     let objects
     // If the input is a string, convert it to JSON, so we have an Object to work with
-    const json = (typeof input === 'string') ? JSON.parse(input) : input
+
 
     // Transform each given Object
-    return json.reduce((result, object) => {
+    return input.reduce((result, object) => {
       result[this.getSymbolById(object.s)] = this.transformSingleObject(object)
       return result
     }, {})

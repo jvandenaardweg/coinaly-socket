@@ -30,9 +30,28 @@ class Bittrex extends Worker {
       // Listen for changes on the websocket
       this.websocket.serviceHandlers.connected = (connection) => this.handleConnected(connection)
       this.websocket.serviceHandlers.messageReceived = (message) => this.handleMessage(message)
+      this.websocket.serviceHandlers.onerror = (error) => this.handleError(error)
+      this.websocket.serviceHandlers.connectionLost = (error) => this.handleConnectionLost(error)
+      this.websocket.serviceHandlers.connectFailed = (error) => this.handleConnectFailed(error)
+      this.websocket.serviceHandlers.disconnected = (connection) => this.handleDisconnected(connection)
+
+      /*
+      bound: void function(){}
+      connectFailed: void function(error){}
+      connected: void function(connection){}
+      connectionLost: void function(error){}
+      disconnected: void function(){}
+      onerror: void function(error){}
+      messageReceived: bool function(message){ return true}
+      bindingError: function(error) {} 
+      onUnauthorized: function(res) {} 
+      reconnected: void function(connection){}
+      reconnecting: function(retry) { return false; }
+    */
+
 
     } catch (e) {
-      console.log(e)
+      console.log(`${this.exchangeName} Websocket:`, 'Start Failed', e)
     }
   }
 
@@ -93,6 +112,24 @@ class Bittrex extends Worker {
         }
       }
     }
+  }
+
+  handleError (error) {
+    console.log(`${this.exchangeName} Websocket:`, 'Error', error)
+  }
+
+  handleConnectionLost (error) {
+    console.log(`${this.exchangeName} Websocket:`, 'Connection Lost', error)
+    this.restart()
+  }
+
+  handleConnectFailed (error) {
+    console.log(`${this.exchangeName} Websocket:`, 'Connect Failed', error)
+    this.restart()
+  }
+
+  handleDisconnected (connection) {
+    console.log(`${this.exchangeName} Websocket:`, 'Disconnected', error)
   }
 }
 

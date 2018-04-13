@@ -57,7 +57,16 @@ class Binance extends Worker {
   }
 
   handleError (error) {
-    this.handleSentryError(`${this.exchangeName} Worker: Websocket Error: ${error.message}`)
+    const code = error.error.code
+    const message = error.message
+    console.log(`${this.exchangeName} Websocket:`, 'Error', code, message)
+
+    if (code === 'ENOTFOUND') {
+      console.log(`${this.exchangeName} Websocket:`, 'Error', 'Probably the host is not reachable or you dont have a active internet connection.')
+    }
+
+    // console.log('komt hierin', Object.keys(error.error.code))
+    // this.handleSentryError(`${this.exchangeName} Worker: Websocket Error: ${error.message}`)
   }
 
   restart () {

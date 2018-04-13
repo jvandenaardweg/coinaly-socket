@@ -6,8 +6,8 @@ class Bittrex extends Worker {
     super('Bittrex')
   }
 
-  start () {
-    this.createCCXTInstance()
+  async start () {
+    await this.createCCXTInstance()
     this.startInterval('fetchTickers')
   }
 }

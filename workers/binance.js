@@ -50,13 +50,10 @@ class Binance extends Worker {
 
     this.websocket.on('message', (data) => {
       const tickers = this.transformer.transformMultipleObjects(data)
-      this.totalUpdates = this.totalUpdates + 1
-      this.lastUpdateAt = new Date()
+      this.setTotalUpdates()
+      this.setLastCheckedAt()
+      this.setLastUpdateAt()
       this.cacheTickers(tickers, this.exchangeName)
-
-      Object.keys(tickers).forEach(symbol => {
-        this.cacheTicker(tickers[symbol])
-      })
     })
   }
 }

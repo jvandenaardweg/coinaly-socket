@@ -25,6 +25,8 @@ class Worker {
     this.totalErrors = 0
     this.restartAfterHours = null
     this.lastResetAt = null
+    this.reloadMarketsAfterHours = 1 // Reload the markets data every hour
+    this.lastReloadMarketsAt = null
     this.cacheKey = {
      'tickers': `exchanges:${this.exchangeSlug}:tickers`,
      'markets': `exchanges:${this.exchangeSlug}:markets`,
@@ -50,6 +52,11 @@ class Worker {
     return 0
   }
 
+  lastReloadMarketFromNow () {
+    if (this.lastReloadMarketsAt) return moment(this.lastReloadMarketsAt).fromNow()
+    return 0
+  }
+
   shouldRestartNow () {
     if (this.restartAfterHours) {
       return this.runningTime('hours') > this.restartAfterHours
@@ -58,9 +65,25 @@ class Worker {
     }
   }
 
+  shouldReloadMarketsNow () {
+    if (this.reloadMarketsAfterHours) {
+      return this.runningTime('hours') > this.reloadMarketsAfterHours
+    } else {
+      return false
+    }
+  }
+
   timeToRestart () {
     if (this.restartAfterHours) {
       return (this.restartAfterHours * 60) - this.runningTime('minutes') + ' minutes'
+    } else {
+      return false
+    }
+  }
+
+  timeToReloadMarkets () {
+    if (this.reloadMarketsAfterHours) {
+      return (this.reloadMarketsAfterHours * 60) - this.runningTime('minutes') + ' minutes'
     } else {
       return false
     }
@@ -96,6 +119,11 @@ class Worker {
     redis.hset(this.cacheKey['status'], 'lastResetAt', this.lastResetAt)
   }
 
+  setLastReloadMarketsAt () {
+    this.lastReloadMarketsAt = new Date()
+    redis.hset(this.cacheKey['status'], 'lastReloadMarketsAt', this.lastReloadMarketsAt)
+  }
+
   async createCCXTInstance () {
     if (this.ccxt && this.ccxt[this.exchangeSlug]) {
       delete this.ccxt[this.exchangeSlug]
@@ -110,8 +138,8 @@ class Worker {
       })
 
       // Store the available markets in Redis, so we can use this for other things
+      // Market data is needed for the Transformers
       await this.saveMarkets()
-      // return markets
     } catch(e) {
       this.handleCCXTExchangeError(e)
     }
@@ -120,6 +148,7 @@ class Worker {
   async saveMarkets () {
     try {
       const markets = await this.ccxt.loadMarkets()
+      this.setLastReloadMarketsAt()
 
       // When we got markets, delete old cache, add new cache and return the markets
       if (Object.keys(markets).length) {
@@ -153,8 +182,17 @@ class Worker {
     this.startInterval('fetchTickers')
   }
 
+  async checkReloadMarkets () {
+    if (this.shouldReloadMarketsNow()) {
+      await this.saveMarkets()
+    }
+  }
+
   startInterval (ccxtMethod, intervalTime = 2000) {
     interval(async (iteration, stop) => {
+
+      this.checkReloadMarkets()
+
       if (this.shouldRestartNow()) {
         this.resetCCXT()
       } else {

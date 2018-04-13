@@ -107,9 +107,12 @@ function logger (workerInstance) {
     `- Total updates: ${workerInstance.totalUpdates}\n`,
     `- Running time: ${workerInstance.runningTime('seconds')} seconds (${workerInstance.runningTime('hours')} hours)\n`,
     `- Time to restart: ${workerInstance.timeToRestart()}\n`,
+    `- Time to reload markets: ${workerInstance.timeToReloadMarkets()}\n`,
     `- Last update: ${workerInstance.lastUpdateFromNow()}\n`,
+    `- Last reload market: ${workerInstance.lastReloadMarketFromNow()}\n`,
     `- Started since: ${workerInstance.startedAt}\n`,
     `- Restarted at: ${workerInstance.restartedAt}\n`,
-    `- Last error at: ${workerInstance.lastErrorAt}\n`
+    `- Last error at: ${workerInstance.lastErrorAt}\n`,
+    `- Last reload market at: ${workerInstance.lastReloadMarketsAt}\n`
   )
 }

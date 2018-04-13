@@ -54,6 +54,7 @@ class Binance extends Worker {
       this.setLastCheckedAt()
       this.setLastUpdateAt()
       this.cacheTickers(tickers, this.exchangeName)
+      this.checkReloadMarkets() // Checks if market needs to be reloaded, if so, it will fetch the new markets from the API
     })
   }
 }

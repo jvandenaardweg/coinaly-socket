@@ -4,8 +4,10 @@
   "version": "1.0.0",
   "scripts": {
     "start": "./node_modules/forever/bin/forever websocket-server.js",
+    "dev": "nodemon websocket-server.js",
     "start:docker": "node socketcluster/dockerwait.js && node ${SOCKETCLUSTER_MASTER_CONTROLLER:-server.js}",
     "start:workers": "./node_modules/forever/bin/forever workers.js",
+    "dev:workers": "nodemon workers.js",
     "test": "jest",
     "test:watch": "jest --watch"
   },
@@ -41,6 +43,7 @@
     "moment": "^2.22.0",
     "morgan": "1.7.0",
     "newrelic": "^3.3.0",
+    "nodemon": "^1.17.3",
     "raven": "^2.4.2",
     "sc-errors": "^1.4.0",
     "sc-framework-health-check": "^2.0.0",

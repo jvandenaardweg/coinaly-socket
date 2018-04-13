@@ -235,7 +235,7 @@ class Worker {
             this.cacheTickers(result)
           }
         } catch (e) {
-          this.handleCCXTExchangeError(this.ccxt, e)
+          this.handleCCXTExchangeError(e)
         }
       }
     }, intervalTime, {stopOnError: false})

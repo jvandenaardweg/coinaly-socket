@@ -31,7 +31,9 @@ describe('workers/worker.js', () => {
 
   it('should set the correct cache key', () => {
     worker = new Worker()
-    expect(worker.cacheKey['tickers']).toBe('exchange:unknown:tickers')
+    expect(worker.cacheKey['tickers']).toBe('exchanges:unknown:tickers')
+    expect(worker.cacheKey['markets']).toBe('exchanges:unknown:markets')
+    expect(worker.cacheKey['status']).toBe('workers:unknown:status')
   })
 
   it('should set the correct running time', () => {

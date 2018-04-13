@@ -29,15 +29,15 @@ Raven.context(function () {
   // Order reflects trading volumes on Coinmarketcap at 12 apr. 2018
   workers['binance'] = new Binance()
   // Huobi (not supporting fetchTickers)
-  workers['okex'] = new Okex()
+  // workers['okex'] = new Okex()
   // Upbit
-  workers['bitfinex'] = new Bitfinex()
-  workers['bithumb'] = new Bithumb()
+  // workers['bitfinex'] = new Bitfinex()
+  // workers['bithumb'] = new Bithumb()
   workers['bittrex'] = new Bittrex()
-  workers['hitbtc'] = new Hitbtc()
-  workers['lbank'] = new Lbank()
-  workers['bitz'] = new Bitz()
-  workers['kraken'] = new Kraken()
+  // workers['hitbtc'] = new Hitbtc()
+  // workers['lbank'] = new Lbank()
+  // workers['bitz'] = new Bitz()
+  // workers['kraken'] = new Kraken()
   // GDAX
   // BTCBOX
   // Bitstamp
@@ -46,15 +46,13 @@ Raven.context(function () {
   // Bibox
   // Gate.io
   // Wex
-  workers['poloniex'] = new Poloniex()
+  // workers['poloniex'] = new Poloniex()
   // Bitflyer
   // Coinbene
   // BTCC
   // BCEX
-  workers['kucoin'] = new Kucoin()
-  workers['liqui'] = new Liqui()
-  // workers['cryptocompare'] = new Cryptocompare()
-  // workers['cryptocompare'].start()
+  // workers['kucoin'] = new Kucoin()
+  // workers['liqui'] = new Liqui()
 
   Object.keys(workers).forEach((workerName, index) => {
     workers[workerName].start()

@@ -26,9 +26,11 @@ class Worker {
     this.restartAfterHours = null
     this.lastResetAt = null
     this.cacheKey = {
-     'tickers': `exchange:${this.exchangeSlug}:tickers`
+     'tickers': `exchanges:${this.exchangeSlug}:tickers`,
+     'markets': `exchanges:${this.exchangeSlug}:markets`,
+     'status': `workers:${this.exchangeSlug}:status`
     }
-    redis.hset(this.cacheKey['tickers'], 'startedAt', this.startedAt)
+    redis.hset(this.cacheKey['status'], 'startedAt', this.startedAt)
   }
 
   runningTime (unitOfTime) {
@@ -66,35 +68,35 @@ class Worker {
 
   setLastUpdateAt () {
     this.lastUpdateAt = new Date()
-    redis.hset(this.cacheKey['tickers'], 'lastUpdateAt', this.lastUpdateAt)
+    redis.hset(this.cacheKey['status'], 'lastUpdateAt', this.lastUpdateAt)
   }
 
   setLastErrorAt () {
     this.lastErrorAt = new Date()
-    redis.hset(this.cacheKey['tickers'], 'lastErrorAt', this.lastErrorAt)
+    redis.hset(this.cacheKey['status'], 'lastErrorAt', this.lastErrorAt)
   }
 
   setLastCheckedAt () {
     this.lastCheckedAt = new Date()
-    redis.hset(this.cacheKey['tickers'], 'lastCheckedAt', this.lastCheckedAt)
+    redis.hset(this.cacheKey['status'], 'lastCheckedAt', this.lastCheckedAt)
   }
 
   setTotalUpdates () {
     this.totalUpdates = this.totalUpdates + 1
-    redis.hset(this.cacheKey['tickers'], 'totalUpdates', this.totalUpdates)
+    redis.hset(this.cacheKey['status'], 'totalUpdates', this.totalUpdates)
   }
 
   setTotalErrors () {
     this.totalErrors = this.totalErrors + 1
-    redis.hset(this.cacheKey['tickers'], 'totalErrors', this.totalErrors)
+    redis.hset(this.cacheKey['status'], 'totalErrors', this.totalErrors)
   }
 
   setLastResetAt () {
     this.lastResetAt = new Date()
-    redis.hset(this.cacheKey['tickers'], 'lastResetAt', this.lastResetAt)
+    redis.hset(this.cacheKey['status'], 'lastResetAt', this.lastResetAt)
   }
 
-  createCCXTInstance () {
+  async createCCXTInstance () {
     if (this.ccxt && this.ccxt[this.exchangeSlug]) {
       delete this.ccxt[this.exchangeSlug]
     }
@@ -106,8 +108,35 @@ class Worker {
         enableRateLimit: true,
         timeout: 15000
       })
+
+      // Store the available markets in Redis, so we can use this for other things
+      await this.saveMarkets()
+      // return markets
     } catch(e) {
       this.handleCCXTExchangeError(e)
+    }
+  }
+
+  async saveMarkets () {
+    try {
+      const markets = await this.ccxt.loadMarkets()
+
+      // When we got markets, delete old cache, add new cache and return the markets
+      if (Object.keys(markets).length) {
+        // Delete the cache first, then add the new markets (essentially removing markets the exchange already removed)
+        await this.deleteCache(this.cacheKey['markets'])
+
+        // Store each market in Redis as a seperate key
+        Object.keys(markets).forEach(symbol => {
+          redis.hset(this.cacheKey['markets'], symbol, JSON.stringify(markets[symbol]))
+        })
+        console.log(`${this.exchangeName} Worker:`, 'Saved markets')
+        return markets
+      } else {
+        return null
+      }
+    } catch(e) {
+      console.log(`${this.exchangeName} Worker:`, 'Error', 'Saving markets failed')
     }
   }
 
@@ -160,23 +189,52 @@ class Worker {
     }
   }
 
-  async cacheTickers (tickersData) {
+  async cacheTickers (tickers) {
     try {
       let stringifedCachedResult = null
-      const totalTickers = this.getDataLength(tickersData)
-      const tickersDataString = this.stringifyData(tickersData)
+      const totalTickers = this.getDataLength(tickers)
+      const tickersString = this.stringifyData(tickers)
 
       const cachedResult = await redis.hget(this.cacheKey['tickers'], 'all')
+
+      // Store each ticker as a seperate key in Redis
+      Object.keys(tickers).forEach(symbol => {
+        this.cacheTicker(tickers[symbol])
+      })
 
       if (cachedResult) {
         stringifedCachedResult = JSON.stringify(cachedResult)
       }
 
       // If the data changed, store it in Redis
-      if (this.isDataChanged(tickersDataString, stringifedCachedResult)) {
-        await redis.hset(this.cacheKey['tickers'], 'all', tickersDataString)
+      if (this.isDataChanged(tickersString, stringifedCachedResult)) {
+        await redis.hset(this.cacheKey['tickers'], 'all', tickersString)
         this.redisPublishChange(this.exchangeSlug)
         console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Tickers', totalTickers)
+      }
+    } catch(e) {
+      this.setLastErrorAt()
+      this.setTotalErrors()
+      console.log(`${this.exchangeName} Worker:`, 'Error getting cached market data to compare', this.exchangeName, e)
+    }
+  }
+
+  async cacheTicker (ticker) {
+    try {
+      let stringifedCachedResult = null
+      const tickerString = this.stringifyData(ticker)
+
+      const cachedResult = await redis.hget(this.cacheKey['tickers'], ticker.symbol)
+
+      if (cachedResult) {
+        stringifedCachedResult = JSON.stringify(cachedResult)
+      }
+
+      // If the data changed, store it in Redis
+      if (this.isDataChanged(tickerString, stringifedCachedResult)) {
+        await redis.hset(this.cacheKey['tickers'], ticker.symbol, tickerString)
+        this.redisPublishChange(this.exchangeSlug)
+        // console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Ticker', ticker.symbol)
       }
     } catch(e) {
       this.setLastErrorAt()
@@ -189,11 +247,24 @@ class Worker {
     redisPub.publish('exchangeTickersUpdate', this.exchangeSlug)
   }
 
+  async deleteCache (key) {
+    console.log(`${this.exchangeName} Worker:`, 'Delete Cache', key)
+    const result = await redis.keys(key)
+    .then(keys => {
+      const pipeline = redis.pipeline()
+      keys.forEach(key => {
+        pipeline.del(key)
+      })
+        return pipeline.exec()
+    })
+    return result
+  }
+
   handleCCXTExchangeError (e) {
     this.setLastErrorAt()
     this.setTotalErrors()
     console.log('CCXT error', e)
-    redis.hset(this.cacheKey['tickers'], 'errorMessage', e)
+    redis.hset(this.cacheKey['status'], 'errorMessage', e)
 
     // TODO: restart worker when: CCXT error TypeError: Cannot read property 'symbol' of undefined
 

@@ -1,11 +1,9 @@
 const ccxt = require('ccxt')
 
 class BinanceTransformer {
-  constructor(symbol) {
+  constructor(ccxt) {
     // Load CCXT so we can use the build in methods to transform properties
-    this.ccxt = new ccxt.binance({
-      enableRateLimit: true
-    })
+    this.ccxt = ccxt
   }
 
   transformMultipleObjects (input) {
@@ -14,9 +12,31 @@ class BinanceTransformer {
     const json = (typeof input === 'string') ? JSON.parse(input) : input
 
     // Transform each given Object
-    return json.map((object, index) => {
-      return this.transformSingleObject(object)
-    })
+    return json.reduce((result, object) => {
+      result[this.getSymbolById(object.s)] = this.transformSingleObject(object)
+      return result
+    }, {})
+  }
+
+  getSymbolById (symbolId) {
+    return this.ccxt.marketsById[symbolId].symbol
+
+    /*
+    marketsById returns something like this (when loadMarkets is run before that)
+    GRSBTC:
+      { id: 'GRSBTC',
+        symbol: 'GRS/BTC',
+        base: 'GRS',
+        quote: 'BTC',
+        baseId: 'GRS',
+        quoteId: 'BTC',
+        info: [Object],
+        lot: 1,
+        active: true,
+        precision: [Object],
+        limits: [Object]
+      }
+    */
   }
 
   transformSingleObject (input) {
@@ -24,9 +44,8 @@ class BinanceTransformer {
     let timestamp = this.ccxt.safeInteger (input, 'E')
     let iso8601 = (typeof timestamp === 'undefined') ? undefined : this.ccxt.iso8601 (input.E)
 
-    // TODO: symbol / input.s > should be BASE/QUOTE
-    output[input.s] = {
-      'symbol': input.s,
+    return {
+      'symbol': this.getSymbolById(input.s),
       'timestamp': timestamp,
       'datetime': iso8601,
       'high': this.ccxt.safeFloat (input, 'h'),

@@ -1,7 +1,6 @@
 /*
 Binance API Docs: https://github.com/binance-exchange/binance-official-api-docs/blob/master/web-socket-streams.md
 */
-"use strict";
 const Worker = require('./worker')
 const WebSocket = require('ws')
 const BinanceTransformer = require('../transformers/binance')
@@ -16,11 +15,14 @@ class Binance extends Worker {
   async start () {
     try {
       // Create a CCXT instance, available at "this.ccxt"
+      // We do this because we need to market data thats fetched upon creation of that CCXT instance
       await this.createCCXTInstance()
 
-      // Create a transformer and give it the CCXT methods to transform data into the proper data model
+      // Create a transformer and give it the CCXT instance
+      // So the transformer has access to all the goodies CCXT gives us
       this.transformer = new BinanceTransformer(this.ccxt)
 
+      // Now creating the connection...
       this.websocket = new WebSocket(this.websocketEndpoint)
 
       // Listen for events

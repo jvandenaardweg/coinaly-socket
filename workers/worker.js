@@ -16,15 +16,15 @@ class Worker {
     this.exchangeSlug = this.exchangeName.toLowerCase()
     this.redisPub = redisPub
     this.startedAt = new Date()
-    this.restartNow = false
-    this.restartedAt = null
+    this.totalErrors = 0
+    this.totalReloadsMarkets = 0
     this.totalUpdates = 0
+    this.restartNow = false
+    this.restartAfterHours = null
+    this.restartedAt = null
     this.lastUpdateAt = null
     this.lastErrorAt = null
     this.lastCheckedAt = null
-    this.totalErrors = 0
-    this.totalReloadsMarkets = 0
-    this.restartAfterHours = null
     this.lastResetAt = null
     this.reloadMarketsAfterMinutes = 60 // Reload the markets data every hour
     this.lastReloadMarketsAt = null
@@ -158,8 +158,10 @@ class Worker {
         timeout: 15000
       })
 
-      // Store the available markets in Redis, so we can use this for other things
-      // Market data is needed for the Transformers
+      // Now, store the available markets in Redis, so we can use this for other things
+      // Market data is needed for the Transformers and for CCXT to work correctly
+      // Since the worker is a long running process, markets at an exchange can change
+      // We just make sure we got the latest market data
       await this.saveMarkets()
     } catch(e) {
       this.handleCCXTExchangeError(e)
@@ -174,7 +176,8 @@ class Worker {
 
       // When we got markets, delete old cache, add new cache and return the markets
       if (Object.keys(markets).length) {
-        // Delete the cache first, then add the new markets (essentially removing markets the exchange already removed)
+        // Delete the cache first, then add the new markets
+        // Essentially removing markets the exchange already removed
         await this.deleteCache(this.cacheKey['markets'])
 
         // Prepare the data for Redis HMSET

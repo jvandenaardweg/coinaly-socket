@@ -58,7 +58,7 @@ class Bittrex extends Worker {
   restart () {
     console.log(`${this.exchangeName} Websocket:`, 'Restarting...')
     this.websocket.terminate()
-    this.setLastRestartedAt()
+    this.setLastDate('lastRestartedAt')
     this.start()
   }
 
@@ -93,14 +93,14 @@ class Bittrex extends Worker {
 
             zlib.inflateRaw(raw, (error, inflated) => {
               if (!error) {
-                this.setLastCheckedAt()
+                this.setLastDate('lastCheckedAt')
 
                 // Finally, when we have unpacked it all, we can do something with the data
                 if (inflated) {
                   const json = JSON.parse(inflated.toString('utf8')).D
                   const tickers = this.transformer.transformMultipleObjects(json)
-                  this.setTotalUpdates()
-                  this.setLastUpdateAt()
+                  this.setIncrementTotals('totalUpdates')
+                  this.setLastDate('lastUpdateAt')
                   this.cacheTickers(tickers, this.exchangeName)
                   this.checkReloadMarkets() // Checks if market needs to be reloaded, if so, it will fetch the new markets from the API
                 } else {

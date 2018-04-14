@@ -5,7 +5,6 @@ Raven.config(process.env.SENTRY_DSN).install()
 const redis = require('../redis')
 const Redis = require('ioredis')
 const redisPub = new Redis(process.env.REDIS_URL)
-const md5 = require('md5')
 const moment = require('moment')
 const interval = require('interval-promise')
 const ccxt = require('ccxt')
@@ -34,124 +33,82 @@ class Worker {
      'markets': `exchanges:${this.exchangeSlug}:markets`,
      'status': `workers:${this.exchangeSlug}:status`
     }
-    redis.hset(this.cacheKey['status'], 'startedAt', this.startedAt)
+    // redis.hset(this.cacheKey['status'], 'startedAt', this.startedAt)
   }
 
+  // Returns the running time of the worker in the given unitOfTime
+  // Example: this.runningTime('seconds') returns running time in seconds
   runningTime (unitOfTime) {
-    let timeToUse
-    if (this.restartedAt) {
-      timeToUse = this.restartedAt
-    } else {
-      timeToUse = this.startedAt
-    }
-
+    let timeToUse = this.startedAt
+    if (this.restartedAt) timeToUse = this.restartedAt
     if (timeToUse) return moment().diff(timeToUse, unitOfTime) // seconds, hours, minutes etc...
     return 0
   }
 
+  // Returns the running time after we have last reloaded the markets data
+  // We reload the markets data because markets can be removed from an exchange
+  // This way the worker always has the latest markets
   runningTimeAfterLastReload (unitOfTime) {
     let timeToUse
-    if (this.lastReloadMarketsAt) {
-      timeToUse = this.lastReloadMarketsAt
-    }
-
+    if (this.lastReloadMarketsAt) timeToUse = this.lastReloadMarketsAt
     if (timeToUse) return moment().diff(timeToUse, unitOfTime) // seconds, hours, minutes etc...
     return 0
   }
 
+  // Returns the time in (xx seconds/minutes/hours ago) when the last update occurred
+  // An "update" is when we received data from the exchange API
   lastUpdateFromNow () {
-    if (this.lastUpdateAt) return moment(this.lastUpdateAt).fromNow()
-    return 0
+    if (!this.lastUpdateAt) return 0
+    return moment(this.lastUpdateAt).fromNow()
   }
 
+  // Returns the time in (xx seconds/minuts/hours ago) when the worker has last fetched new markets from the exchange
   lastReloadMarketFromNow () {
-    if (this.lastReloadMarketsAt) return moment(this.lastReloadMarketsAt).fromNow()
-    return 0
+    if (!this.lastReloadMarketsAt) return 0
+    return moment(this.lastReloadMarketsAt).fromNow()
   }
 
+  // Returns true or false when we need to restart the worker
+  // Some exchanges (like Binance) don't allow forever connections. We need to restart the connection to the API once in a while
   shouldRestartNow () {
-    if (this.restartAfterHours) {
-      return this.runningTime('hours') > this.restartAfterHours
-    } else {
-      return false
-    }
+    if (!this.restartAfterHours) return false
+    return this.runningTime('hours') > this.restartAfterHours
   }
 
+  // Returns true when we need to fetch the latest markets data from the exchange again
   shouldReloadMarketsNow () {
-    if (this.reloadMarketsAfterMinutes) {
-      return this.runningTimeAfterLastReload('minutes') > this.reloadMarketsAfterMinutes
-    } else {
-      return false
-    }
+    if (!this.reloadMarketsAfterMinutes) return false
+    return this.runningTimeAfterLastReload('minutes') > this.reloadMarketsAfterMinutes
   }
 
+  // Returns the time in minutes to restart the worker
   timeToRestart () {
-    if (this.restartAfterHours) {
-      return (this.restartAfterHours * 60) - this.runningTime('minutes') + ' minutes'
-    } else {
-      return false
-    }
+    if (!this.restartAfterHours) return false
+    return (this.restartAfterHours * 60) - this.runningTime('minutes') + ' minutes'
   }
 
+  // Returns the time in minutes when we need to fetch the markets data again from the exchange API
   timeToReloadMarkets () {
-    if (this.reloadMarketsAfterMinutes) {
-      return this.reloadMarketsAfterMinutes - this.runningTimeAfterLastReload('minutes') + ' minutes'
-    } else {
-      return false
-    }
+    if (!this.reloadMarketsAfterMinutes) return false
+    return this.reloadMarketsAfterMinutes - this.runningTimeAfterLastReload('minutes') + ' minutes'
   }
 
-  setLastUpdateAt () {
-    this.lastUpdateAt = new Date()
-    redis.hset(this.cacheKey['status'], 'lastUpdateAt', this.lastUpdateAt)
+  // Sets the last date in the instance ánd in Redis, so we know what's going on whe we monitor the worker
+  setLastDate (type) {
+    // lastUpdateAt, lastErrorAt, lastCheckedAt, lastResetAt, lastRestartedAt, lastReloadMarketsAt
+    this[type] = new Date()
+    redis.hset(this.cacheKey['status'], type, this[type])
   }
 
-  setLastErrorAt () {
-    this.lastErrorAt = new Date()
-    redis.hset(this.cacheKey['status'], 'lastErrorAt', this.lastErrorAt)
+  setIncrementTotals (type) {
+    // totalUpdates, totalErrors, totalReloadsMarkets
+    this[type] = this[type] + 1
+    redis.hset(this.cacheKey['status'], type, this[type])
   }
 
-  setLastCheckedAt () {
-    this.lastCheckedAt = new Date()
-    redis.hset(this.cacheKey['status'], 'lastCheckedAt', this.lastCheckedAt)
-  }
-
-  setTotalUpdates () {
-    this.totalUpdates = this.totalUpdates + 1
-    redis.hset(this.cacheKey['status'], 'totalUpdates', this.totalUpdates)
-  }
-
-  setTotalErrors () {
-    this.totalErrors = this.totalErrors + 1
-    redis.hset(this.cacheKey['status'], 'totalErrors', this.totalErrors)
-  }
-
-  setLastResetAt () {
-    this.lastResetAt = new Date()
-    redis.hset(this.cacheKey['status'], 'lastResetAt', this.lastResetAt)
-  }
-
-  setLastRestartedAt () {
-    this.lastRestartedAt = new Date()
-    redis.hset(this.cacheKey['status'], 'lastRestartedAt', this.lastRestartedAt)
-  }
-
-  setTotalReloadsMarkets () {
-    this.totalReloadsMarkets = this.totalReloadsMarkets + 1
-    redis.hset(this.cacheKey['status'], 'totalReloadsMarkets', this.totalReloadsMarkets)
-  }
-
-  setLastReloadMarketsAt () {
-    this.lastReloadMarketsAt = new Date()
-    redis.hset(this.cacheKey['status'], 'lastReloadMarketsAt', this.lastReloadMarketsAt)
-  }
-
+  // Creates an instance of CCXT to be used by the worker
   async createCCXTInstance () {
-    if (this.ccxt && this.ccxt[this.exchangeSlug]) {
-      delete this.ccxt[this.exchangeSlug]
-    }
-
-    this.ccxt = {}
+    this.deleteCCXTInstance()
 
     try {
       this.ccxt = new ccxt[this.exchangeSlug]({
@@ -165,6 +122,7 @@ class Worker {
       // We just make sure we got the latest market data
       await this.saveMarkets()
     } catch(e) {
+      // throw new Error('Error hier')
       this.handleCCXTExchangeError(e)
     }
   }
@@ -172,8 +130,8 @@ class Worker {
   async saveMarkets () {
     try {
       const markets = await this.ccxt.loadMarkets()
-      this.setLastReloadMarketsAt()
-      this.setTotalReloadsMarkets()
+      this.setLastDate('lastReloadMarketsAt')
+      this.setIncrementTotals('totalReloadsMarkets')
 
       // When we got markets, delete old cache, add new cache and return the markets
       if (Object.keys(markets).length) {
@@ -199,9 +157,11 @@ class Worker {
   }
 
   deleteCCXTInstance () {
-    if (this.ccxt[this.exchangeSlug]) {
+    if (this.ccxt && this.ccxt[this.exchangeSlug]) {
       delete this.ccxt[this.exchangeSlug]
     }
+    this.ccxt = null
+    return this.ccxt
   }
 
   convertToHMSETString (data) {
@@ -215,7 +175,7 @@ class Worker {
   }
 
   resetCCXT () {
-    this.setLastResetAt()
+    this.setLastDate('lastResetAt')
     this.deleteCCXTInstance()
     this.createCCXTInstance()
     this.startInterval('fetchTickers')
@@ -236,11 +196,11 @@ class Worker {
         this.resetCCXT()
       } else {
         try {
-          this.setLastCheckedAt()
+          this.setLastDate('lastCheckedAt')
           const result = await this.ccxt[ccxtMethod]()
           if (result) {
-            this.setTotalUpdates()
-            this.setLastUpdateAt()
+            this.setIncrementTotals('totalUpdates')
+            this.setLastDate('lastUpdateAt')
             this.cacheTickers(result)
           }
         } catch (e) {
@@ -255,15 +215,7 @@ class Worker {
   }
 
   getDataLength (data) {
-    return (typeof data === 'string') ? JSON.parse(data).length : Object.keys(data).length
-  }
-
-  isDataChanged (left, right) {
-    if (left && right) {
-      return md5(left) !== md5(right)
-    } else {
-      return true
-    }
+    return (typeof data === 'string') ? Object.keys(JSON.parse(data)).length : Object.keys(data).length
   }
 
   async cacheTickers (tickers) {
@@ -294,8 +246,8 @@ class Worker {
 
       console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Tickers', totalTickers)
     } catch(e) {
-      this.setLastErrorAt()
-      this.setTotalErrors()
+      this.setLastDate('lastErrorAt')
+      this.setIncrementTotals('totalErrors')
       console.log(`${this.exchangeName} Worker:`, 'Error getting cached market data to compare', this.exchangeName, e)
     }
   }
@@ -325,8 +277,8 @@ class Worker {
   }
 
   handleCCXTExchangeError (e) {
-    this.setLastErrorAt()
-    this.setTotalErrors()
+    this.setLastDate('lastErrorAt')
+    this.setIncrementTotals('totalErrors')
     console.log(`${this.exchangeName} Worker:`, 'CCXT error', e)
     redis.hset(this.cacheKey['status'], 'errorMessage', JSON.stringify(e))
 

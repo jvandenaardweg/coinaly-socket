@@ -35,12 +35,12 @@ class Binance extends Worker {
   }
 
   handleMessage (data) {
-    this.setLastCheckedAt()
+    this.setLastDate('lastCheckedAt')
     if (data) {
       const json = (typeof data === 'string') ? JSON.parse(data) : data
       const tickers = this.transformer.transformMultipleObjects(json)
-      this.setTotalUpdates()
-      this.setLastUpdateAt()
+      this.setIncrementTotals('totalUpdates')
+      this.setLastDate('lastUpdateAt')
       this.cacheTickers(tickers, this.exchangeName)
       this.checkReloadMarkets() // Checks if market needs to be reloaded, if so, it will fetch the new markets from the API
     } else {
@@ -72,7 +72,7 @@ class Binance extends Worker {
   restart () {
     console.log(`${this.exchangeName} Websocket:`, 'Restarting...')
     this.websocket.terminate()
-    this.setLastRestartedAt()
+    this.setLastDate('lastRestartedAt')
     this.start()
   }
 }

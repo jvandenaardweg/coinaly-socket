@@ -15,6 +15,7 @@ Raven.context(function () {
 
   const Binance = require('./workers/binance')
   const Bittrex = require('./workers/bittrex')
+  const BittrexWebsocket = require('./workers/bittrex-websocket')
   const Kraken = require('./workers/kraken')
   const Bitfinex = require('./workers/bitfinex')
   const Poloniex = require('./workers/poloniex')
@@ -32,7 +33,8 @@ Raven.context(function () {
   workers['okex'] = new Okex()
   workers['bitfinex'] = new Bitfinex()
   workers['bithumb'] = new Bithumb()
-  workers['bittrex'] = new Bittrex()
+  // workers['bittrex'] = new Bittrex()
+  workers['bittrex'] = new BittrexWebsocket()
   workers['hitbtc'] = new Hitbtc()
   workers['lbank'] = new Lbank()
   workers['bitz'] = new Bitz()

@@ -27,7 +27,7 @@ class Bittrex extends Worker {
 
       this.websocket = new signalR.client(this.websocketEndpoint, ['c2'])
 
-      // this.websocket.serviceHandlers.connected = (connection) => this.handleConnected(connection)
+      this.websocket.serviceHandlers.connected = (connection) => this.handleConnected(connection)
       this.websocket.serviceHandlers.messageReceived = (message) => this.handleMessage(message)
       this.websocket.serviceHandlers.onerror = (error) => this.handleError(error)
       this.websocket.serviceHandlers.connectionLost = (error) => this.handleConnectionLost(error)

@@ -113,7 +113,7 @@ class Worker {
     try {
       this.ccxt = new ccxt[this.exchangeSlug]({
         enableRateLimit: true,
-        timeout: 15000
+        timeout: 5000
       })
 
       // Now, store the available markets in Redis, so we can use this for other things
@@ -220,15 +220,9 @@ class Worker {
 
   async cacheTickers (tickers) {
     try {
-      let stringifedCachedResult = null
       const totalTickers = this.getDataLength(tickers)
       const tickersString = this.stringifyData(tickers)
-
-      const cachedResult = await redis.hget(this.cacheKey['tickers'], 'all')
-
-      // Prepare the data for Redis HMSET
-      // Returing a new Object like: "ETH/BTC": { string }
-      const tickersStringHMSET = this.convertToHMSETString(tickers)
+      const tickersStringHMSET = this.convertToHMSETString(tickers) // Prepare the data for Redis HMSET. Returing a new Object like: "ETH/BTC": { string }
 
       // Store each ticker in it's own key
       await redis.hmset(this.cacheKey['tickers'], tickersStringHMSET)
@@ -254,12 +248,10 @@ class Worker {
 
   redisPublishChangeTicker (symbol, data = null) {
     const eventData = (symbol) ? `${this.exchangeCapitalized}~${symbol}` : `${this.exchangeCapitalized}~ALL`
-    // console.log('Redis Publish Change:', eventData)
     redisPub.publish(eventData, data)
   }
 
   redisPublishChangeExchange (tickers) {
-    // console.log('Redish Publish Change:', 'Exchange', this.exchangeCapitalized)
     redisPub.publish(this.exchangeCapitalized, tickers)
   }
 
@@ -282,46 +274,23 @@ class Worker {
     console.log(`${this.exchangeName} Worker:`, 'CCXT error', e)
     redis.hset(this.cacheKey['status'], 'errorMessage', JSON.stringify(e))
 
-    // TODO: restart worker when: CCXT error TypeError: Cannot read property 'symbol' of undefined
-
-    let message
-    let reason = null
-    let exchangeErrorCode = null
     if (e instanceof ccxt.DDoSProtection || e.message.includes('ECONNRESET')) {
-      // log.bright.yellow('[DDoS Protection] ' + e.message)
-      message = e.message
-      reason = 'ddos protection'
-      console.log('CCXT:', 'Error', 'DDOS Protection')
+      console.log(`${this.exchangeName} Worker:`, 'CCXT Error', 'DDOS Protection', e)
     } else if (e instanceof ccxt.RequestTimeout) {
-      // log.bright.yellow('[Request Timeout] ' + e.message)
-      message = e.message
-      reason = 'request timeout'
-      console.log('CCXT:', 'Error', 'Request Timeout')
+      console.log(`${this.exchangeName} Worker:`, 'CCXT Error', 'Request Timeout', e)
     } else if (e instanceof ccxt.AuthenticationError) {
-      // log.bright.yellow('[Authentication Error] ' + e.message)
-      message = e.message
-      reason = 'authentication error'
-      console.log('CCXT:', 'Error', 'Authenticfation Error')
+      console.log(`${this.exchangeName} Worker:`, 'CCXT Error', 'Authentication Error', e)
     } else if (e instanceof ccxt.ExchangeNotAvailable) {
-      // log.bright.yellow('[Exchange Not Available Error] ' + e.message)
-      message = e.message
-      reason = 'exchange not available error'
-      console.log('CCXT:', 'Error', 'Exchange Not Available')
+      console.log(`${this.exchangeName} Worker:`, 'CCXT Error', 'Exchange Not Available', e)
     } else if (e instanceof ccxt.ExchangeError) {
-      // log.bright.yellow('[Exchange Error] ' + e.message)
-      message = e.message
-      reason = 'exchange error'
-      console.log('CCXT:', 'Error', 'Exchange Error')
+      console.log(`${this.exchangeName} Worker:`, 'CCXT Error', 'Exchange Error', e)
     } else if (e instanceof ccxt.NetworkError) {
-      // log.bright.yellow('[Network Error] ' + e.message)
-      message = e.message
-      reason = 'network error'
-      console.log('CCXT:', 'Error', 'Network Error')
+      console.log(`${this.exchangeName} Worker:`, 'CCXT Error', 'Network Error', e)
     } else {
-      message = e.message
+      console.log(`${this.exchangeName} Worker:`, 'CCXT Error', 'Unexpected Error', e)
+      // Rethrow an unexpected error
+      throw e
     }
-
-    console.log('ERROR!!', `${this.exchangeName} Worker:`, 'CCXT Error', message)
   }
 
   handleSentryError (message) {

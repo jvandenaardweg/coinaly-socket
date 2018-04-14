@@ -65,8 +65,15 @@ class Binance extends Worker {
       console.log(`${this.exchangeName} Websocket:`, 'Error', 'Probably the host is not reachable or you dont have a active internet connection.')
     }
 
-    // console.log('komt hierin', Object.keys(error.error.code))
-    // this.handleSentryError(`${this.exchangeName} Worker: Websocket Error: ${error.message}`)
+    this.tryRestart()
+
+  }
+
+  tryRestart () {
+    this.restartTimeout = setTimeout(() => {
+      console.log(`${this.exchangeName} Websocket:`, 'Trying are websocket restart after error...')
+      this.restart()
+    }, 2000)
   }
 
   restart () {
@@ -74,6 +81,7 @@ class Binance extends Worker {
     this.websocket.terminate()
     this.setLastDate('lastRestartedAt')
     this.start()
+    clearTimeout(this.restartTimeout)
   }
 }
 

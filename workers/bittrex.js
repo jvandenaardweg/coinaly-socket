@@ -129,7 +129,8 @@ class Bittrex extends Worker {
   }
 
   handleDisconnected (connection) {
-    console.log(`${this.exchangeName} Websocket:`, 'Disconnected', error)
+    console.log(`${this.exchangeName} Websocket:`, 'Disconnected', connection)
+    this.restart()
   }
 }
 

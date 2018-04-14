@@ -246,13 +246,14 @@ class Worker {
     }
   }
 
-  redisPublishChangeTicker (symbol, data = null) {
-    const eventData = (symbol) ? `${this.exchangeCapitalized}~${symbol}` : `${this.exchangeCapitalized}~ALL`
-    redisPub.publish(eventData, data)
+  redisPublishChangeTicker (symbol, ticker) {
+    // Publishing something like this: TICKERS~BITTREX~BTC/USDT
+    redisPub.publish(`TICKERS~${this.exchangeCapitalized}~${symbol}`, JSON.stringify(ticker))
   }
 
   redisPublishChangeExchange (tickers) {
-    redisPub.publish(this.exchangeCapitalized, tickers)
+    // Publishing something like this: TICKERS~BITTREX~NEW
+    redisPub.publish(`TICKERS~${this.exchangeCapitalized}~NEW`, JSON.stringify(tickers))
   }
 
   async deleteCache (key) {

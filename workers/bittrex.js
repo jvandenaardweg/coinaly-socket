@@ -8,7 +8,7 @@ class Bittrex extends Worker {
 
   start () {
     this.createCCXTInstance()
-    this.startInterval('fetchTickers')
+    this.startInterval('fetchTickers', 1500)
   }
 }
 

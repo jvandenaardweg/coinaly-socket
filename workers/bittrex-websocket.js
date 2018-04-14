@@ -27,29 +27,12 @@ class Bittrex extends Worker {
 
       this.websocket = new signalR.client(this.websocketEndpoint, ['c2'])
 
-      // Listen for changes on the websocket
-      this.websocket.serviceHandlers = {
-        connected: function (connection) {
-          console.log('CONNECTED')
-        },
-        disconnected: function (connection) {
-          console.log('DISCONNECTED')
-        },
-        reconnecting: function(retry) {
-          console.log('Retrying...')
-          // change to true to stop retrying
-          return false;
-        }
-      }
       // this.websocket.serviceHandlers.connected = (connection) => this.handleConnected(connection)
       this.websocket.serviceHandlers.messageReceived = (message) => this.handleMessage(message)
       this.websocket.serviceHandlers.onerror = (error) => this.handleError(error)
       this.websocket.serviceHandlers.connectionLost = (error) => this.handleConnectionLost(error)
       this.websocket.serviceHandlers.connectFailed = (error) => this.handleConnectFailed(error)
-      this.websocket.serviceHandlers.disconnected = function (connection) {
-        console.log('DISCONNECTED')
-        this.handleDisconnected(connection)
-      }
+      this.websocket.serviceHandlers.disconnected = (connection) => this.handleDisconnected(connection)
 
       /*
       bound: void function(){}

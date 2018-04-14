@@ -7,6 +7,7 @@ Raven.config(process.env.SENTRY_DSN, {
 }).install()
 const moment = require('moment')
 const Table = require('cli-table')
+const exchangesEnabled = require('./exchanges-enabled')
 
 // Wrap it in a Raven context, so unhandled exceptions are logged
 Raven.context(function () {
@@ -28,34 +29,20 @@ Raven.context(function () {
 
   // Order reflects trading volumes on Coinmarketcap at 12 apr. 2018
   workers['binance'] = new Binance()
-  // Huobi (not supporting fetchTickers)
-  // workers['okex'] = new Okex()
-  // Upbit
-  // workers['bitfinex'] = new Bitfinex()
-  // workers['bithumb'] = new Bithumb()
+  workers['okex'] = new Okex()
+  workers['bitfinex'] = new Bitfinex()
+  workers['bithumb'] = new Bithumb()
   workers['bittrex'] = new Bittrex()
-  // workers['hitbtc'] = new Hitbtc()
-  // workers['lbank'] = new Lbank()
-  // workers['bitz'] = new Bitz()
-  // workers['kraken'] = new Kraken()
-  // GDAX
-  // BTCBOX
-  // Bitstamp
-  // ZB.com
-  // Bitc Blockchain
-  // Bibox
-  // Gate.io
-  // Wex
-  // workers['poloniex'] = new Poloniex()
-  // Bitflyer
-  // Coinbene
-  // BTCC
-  // BCEX
-  // workers['kucoin'] = new Kucoin()
-  // workers['liqui'] = new Liqui()
+  workers['hitbtc'] = new Hitbtc()
+  workers['lbank'] = new Lbank()
+  workers['bitz'] = new Bitz()
+  workers['kraken'] = new Kraken()
+  workers['poloniex'] = new Poloniex()
+  workers['kucoin'] = new Kucoin()
+  workers['liqui'] = new Liqui()
 
-  Object.keys(workers).forEach((workerName, index) => {
-    workers[workerName].start()
+  Object.keys(exchangesEnabled).forEach((exchangeSlug, index) => {
+    workers[exchangeSlug].start()
   })
 
   // Report data to console for debugging and status check

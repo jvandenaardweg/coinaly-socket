@@ -4,23 +4,67 @@
     <title>Socket Status</title>
     <script type="text/javascript" src="/js/socketcluster.js"></script>
     <style>
-      #response {
+      body {
+        font-family: 'Helvetica Neue'
+      }
+
+      .response {
+        display: inline-block;
+        width: 300px;
+        display: inline-block;
+        margin: 10px;
+      }
+      .response pre {
         word-break: break-word;
         height: 300px;
         text-align: left;
         overflow: scroll;
+        background-color: #eeeeee;
+        padding: 20px;
+        border-radius: 3px;
+      }
+      .response .response__time {
+        opacity: 0.5;
+        font-size: 12px;
+      }
+      .response .response__time span {
+        display: block;
+      }
+      .is-hidden {
+        display: none;
       }
     </style>
   </head>
   <body>
 
-    <pre id="available-exchanges"></pre>
-    <pre id="available-channels"></pre>
-    <pre id="response">
-      Waiting...
-    </pre>
+    <div>
+      <strong>Available exchanges:</strong>
+      <pre id="available-exchanges"></pre>
+    </div>
+
+    <hr />
+    <!-- <pre id="available-channels"></pre> -->
+
+    <div id="responses"></div>
+
+    <div class="response is-hidden" id="response-template">
+      <div class="response__header">
+        <strong>
+          <span class="response_name">Waiting...</span>
+          (<span class="response__total">...</span>)
+        </strong>
+        <div class="response__time">Last update: <span class="response__update">Waiting...</span></div>
+      </div>
+      <div class="response__body">
+        <pre>
+          Waiting...
+        </pre>
+      </div>
+    </div>
 
     <script type="text/javascript">
+      var availableExchanges = null
+      var channels = {}
       // Initiate the connection to the server
       var socket = socketCluster.connect();
 
@@ -32,32 +76,55 @@
         console.log('CONNECTED');
       });
 
-      socket.on('availableExchanges', function (data) {
+      socket.on('EXCHANGES~AVAILABLE', function (data) {
         console.log('Available exchanges: ', data);
+        availableExchanges = data
         document.getElementById('available-exchanges').innerHTML = data
-      })
 
-      socket.on('availableChannels', function (data) {
-        console.log('Available channels: ', data);
-        document.getElementById('available-channels').innerHTML = data
+        // Watch each available channel for demo purposes
+        availableExchanges.forEach(function (exchange) {
+          var uppercasedExchange = exchange.toUpperCase()
+          var sourceTemplate = document.getElementById('response-template')
+          var template = sourceTemplate.cloneNode(true)
+          var responsesHolder = document.getElementById('responses')
+          template.setAttribute('id', exchange)
+          template.classList.remove('is-hidden')
+
+          responsesHolder.appendChild(template)
+
+          channels[exchange] = socket.subscribe('TICKERS~' + uppercasedExchange + '~NEW', {batch: true})
+
+          channels[exchange].watch(function (data) {
+            console.log('Received Exchange Data:', data);
+            var exchangeElement = document.getElementById(exchange)
+            exchangeElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
+            exchangeElement.querySelector('.response_name').innerHTML = exchange
+            exchangeElement.querySelector('.response__total').innerHTML = Object.keys(data).length
+            exchangeElement.querySelector('.response__update').innerHTML = new Date()
+          })
+        })
       })
 
 
       // var sampleChannel = socket.subscribe('sample');
-      var exchangeDataChannel = socket.subscribe('tickers--bittrex');
+      // var binanceNewChannel = socket.subscribe('TICKERS~BINANCE~NEW', {batch: true});
+      // var bittrexNewChannel = socket.subscribe('TICKERS~BITTREX~NEW', {batch: true});
 
-      // sampleChannel.on('subscribeFail', function (err) {
-      //   console.log('Failed to subscribe to the sample channel due to error: ' + err);
-      // });
+      // binanceNewChannel.watch(function (data) {
+      //   console.log('Received Exchange Data:', data);
+      //   var binanceElement = document.getElementById('binance')
+      //   binanceElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
+      //   binanceElement.querySelector('.response__total').innerHTML = Object.keys(data).length
+      //   binanceElement.querySelector('.response__update').innerHTML = new Date()
+      // })
 
-      // sampleChannel.watch(function (num) {
-      //   console.log('Sample channel message:', num);
-      // });
-
-      exchangeDataChannel.watch(function (data) {
-        console.log('Received Exchange Data:', data);
-        document.getElementById('response').innerHTML = JSON.stringify(data.data, undefined, 2)
-      });
+      // bittrexNewChannel.watch(function (data) {
+      //   console.log('Received Exchange Data:', data);
+      //   var bittrexElement = document.getElementById('bittrex')
+      //   bittrexElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
+      //   bittrexElement.querySelector('.response__total').innerHTML = Object.keys(data).length
+      //   bittrexElement.querySelector('.response__update').innerHTML = new Date()
+      // })
     </script>
   </body>
 </html>

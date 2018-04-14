@@ -14,6 +14,9 @@ const md5 = require('md5')
 const redis = require('../redis')
 const Redis = require('ioredis')
 const redisSub = new Redis(process.env.REDIS_URL)
+const util = require('util')
+
+const exchangesEnabled = require('../exchanges-enabled')
 
 class Worker extends SCWorker {
   run() {
@@ -25,81 +28,49 @@ class Worker extends SCWorker {
     var httpServer = this.httpServer;
     var scServer = this.scServer;
 
-    app.use(Raven.requestHandler());
-    app.use(Raven.errorHandler());
+    // Sentry error handling
+    app.use(Raven.requestHandler())
+    app.use(Raven.errorHandler())
 
     if (environment === 'dev') {
       // Log every HTTP request. See https://github.com/expressjs/morgan for other
       // available formats.
       app.use(morgan('dev'));
     }
-    app.use(serveStatic(path.resolve(__dirname, '../public')));
+    app.use(serveStatic(path.resolve(__dirname, '../public')))
 
     // Add GET /health-check express route
-    healthChecker.attach(this, app);
+    healthChecker.attach(this, app)
 
-    httpServer.on('request', app);
+    httpServer.on('request', app)
 
-    var count = 0;
+    // var count = 0;
 
-    redisSub.subscribe('exchangeTickersUpdate');
+    // Loop through the enabled exchanges to set the correct PubSub events to subscribe to
+    Object.keys(exchangesEnabled).forEach((exchangeSlug, index) => {
+      const eventName = exchangesEnabled[exchangeSlug].tickersEvent
+      redisSub.psubscribe(`${eventName}~*`)
+    })
 
-    redisSub.on('message', function (channel, message) {
-      const exchangeName = message
-      const event = channel
+    redisSub.on('pmessage', function (pattern, channel, message) {
+      // Publishing something like this:
+      // Channel: TICKERS~BITTREX~NEW, TICKERS~BITTREX~BTC/USDT etc...
+      // Data: {Objects}
+      console.log('Publishing to websocket:', channel)
+      scServer.exchange.publish(channel, JSON.parse(message))
+    })
 
-      if (event === 'exchangeTickersUpdate') {
-        getCachedData(`exchange:${exchangeName}:tickers`, 'all')
-        .then(result => {
-          console.log('Socketcluster:', `Publish: tickers--${exchangeName}`);
-          scServer.exchange.publish(`tickers--${exchangeName}`, {
-            exchange: exchangeName,
-            data: result
-          });
-        })
-      }
-    });
-
-    /*
-      In here we handle our incoming realtime connections and listen for events.
-    */
     scServer.on('connection', function (socket) {
       console.log('Socketcluster:', 'Client connection', socket.id)
 
-      const availableExchanges = ['bittrex', 'binance', 'bitfinex', 'bithumb', 'bitz', 'hitbtc']
-      const availableChannels = availableExchanges.map(exchangeSlug => {
-        return `tickers--${exchangeSlug}`
-      })
       // Send the available exchanges and channels to the user
-      socket.emit('availableExchanges', availableExchanges)
-      socket.emit('availableChannels', availableChannels)
-
-      // Some sample logic to show how to handle client events,
-      // replace this with your own logic
-
-      // Send last market data on connection
-      // getCachedExchangeData(socket, socket.id)
-
-      socket.on('sampleClientEvent', function (data) {
-        count++;
-        console.log('Socketcluster:', 'Handled sampleClientEvent', data);
-        scServer.exchange.publish('sample', count);
-      });
-
-      // Run a function 10 times with 1 second between each iteration
-
-
-      var interval = setInterval(function () {
-        socket.emit('rand', {
-          rand: Math.floor(Math.random() * 5)
-        });
-      }, 1000);
+      socket.emit('EXCHANGES~AVAILABLE', Object.keys(exchangesEnabled))
 
       socket.on('disconnect', function () {
         console.log('Socketcluster:', 'Client disconnected')
         clearInterval(interval);
-      });
-    });
+      })
+    })
   }
 }
 

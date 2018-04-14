@@ -49,14 +49,14 @@ Raven.context(function () {
   setInterval(() => {
 
     // Log status to console from each worker
-    Object.keys(workers).forEach((workerName, index) => {
-      logger(workers[workerName])
+    Object.keys(exchangesEnabled).forEach((exchangeSlug, index) => {
+      logger(workers[exchangeSlug])
 
       // Per worker we can determine when we want a restart
       // Restart the worker if we should
-      if (workers[workerName].shouldRestartNow()) {
-        console.log(`\nSTATUS: ${workers[workerName].exchangeName} Worker: Restarting because of runningtime limitations...`)
-        workers[workerName].restart()
+      if (workers[exchangeSlug].shouldRestartNow()) {
+        console.log(`\nSTATUS: ${workers[exchangeSlug].exchangeName} Worker: Restarting because of runningtime limitations...`)
+        workers[exchangeSlug].restart()
       }
     })
   }, 5000)

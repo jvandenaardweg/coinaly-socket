@@ -272,7 +272,7 @@ class Worker {
   handleCCXTExchangeError (e) {
     this.setLastDate('lastErrorAt')
     this.setIncrementTotals('totalErrors')
-    console.log(`${this.exchangeName} Worker:`, 'CCXT error', e)
+    // console.log(`${this.exchangeName} Worker:`, 'CCXT error', e)
     redis.hset(this.cacheKey['status'], 'errorMessage', JSON.stringify(e))
 
     if (e instanceof ccxt.DDoSProtection || e.message.includes('ECONNRESET')) {

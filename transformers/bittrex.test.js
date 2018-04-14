@@ -19,6 +19,22 @@ describe('transformers/bittrex.js', () => {
     expect(transformer).toBeInstanceOf(BittrexTransformer)
   })
 
+  it('should return the correct percentage', () => {
+    const input = {
+      l: 0.0012345,
+      PD: 0.0013456
+    }
+    expect(transformer.getPercentage(input)).toBe(-8.25653983)
+  })
+
+  it('should return the correct change', () => {
+    const input = {
+      l: 0.0012345,
+      PD: 0.0013456
+    }
+    expect(transformer.getChange(input)).toBe(-0.0001111)
+  })
+
   it('should output a transformed object using the CCXT data model', () => {
     expect(transformer.transformSingleObject(sampleInput[0])).toMatchObject(expectedOutput['BTC/AMP'])
   })

@@ -150,7 +150,7 @@ describe('workers/worker.js', () => {
   //   expect(TestExchange.createCCXTInstance()).toBe('Error hier')
   // })
 
-  it('should convert object properties to a string for', () => {
+  it('should convert object properties to a string for Redis HMSET', () => {
 
     const input = {
       'ETH/BTC': {

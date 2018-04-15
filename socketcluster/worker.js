@@ -15,6 +15,7 @@ const redis = require('../redis')
 const Redis = require('ioredis')
 const redisSub = new Redis(process.env.REDIS_URL)
 const util = require('util')
+const { convertHMGETALLToJSON } = require('../helpers/objects')
 
 const exchangesEnabled = require('../exchanges-enabled')
 
@@ -69,6 +70,23 @@ class Worker extends SCWorker {
       socket.on('disconnect', function () {
         console.log('Socketcluster:', 'Client disconnected')
         clearInterval(interval);
+      })
+
+      // On subscribe, send a cached response from Redis
+      // So the user receives the first data immeadiatyly
+      socket.on('subscribe', function (channel) {
+        console.log('subscribe', channel)
+        const channelSplitted = channel.split('~')
+        const type = channelSplitted[0] // TICKERS?
+        const exchange = channelSplitted[1] // BITTREX, BINANCE, POLONIEX etc...?
+        const stream = channelSplitted[2] // NEW, BTC/ETH etc...?
+
+        // Get cached tickers from Redis
+        redis.hgetall(`exchanges:${exchange.toLowerCase()}:tickers`)
+        .then(function (result) {
+          const data = convertHMGETALLToJSON(result);
+          socket.emit(channel, data);
+        })
       })
     })
   }

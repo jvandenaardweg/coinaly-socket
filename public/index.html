@@ -76,6 +76,10 @@
         console.log('CONNECTED');
       });
 
+      socket.on('TICKERS~BITTREX~NEW', function(data) {
+        console.log('subscribe', data)
+      })
+
       socket.on('EXCHANGES~AVAILABLE', function (data) {
         console.log('Available exchanges: ', data);
         availableExchanges = data

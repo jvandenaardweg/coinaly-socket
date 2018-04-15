@@ -56,7 +56,7 @@ class Worker extends SCWorker {
       // Publishing something like this:
       // Channel: TICKERS~BITTREX~NEW, TICKERS~BITTREX~BTC/USDT etc...
       // Data: {Objects}
-      console.log('Publishing to websocket:', channel)
+      // console.log('Publishing to websocket:', channel)
       scServer.exchange.publish(channel, JSON.parse(message))
     })
 

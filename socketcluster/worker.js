@@ -15,7 +15,7 @@ const redis = require('../redis')
 const Redis = require('ioredis')
 const redisSub = new Redis(process.env.REDIS_URL)
 const util = require('util')
-const { convertHMGETALLToJSON } = require('../helpers/objects')
+const { convertKeyStringToObject } = require('../helpers/objects')
 
 const exchangesEnabled = require('../exchanges-enabled')
 
@@ -84,7 +84,7 @@ class Worker extends SCWorker {
         // Get cached tickers from Redis
         redis.hgetall(`exchanges:${exchange.toLowerCase()}:tickers`)
         .then(function (result) {
-          const data = convertHMGETALLToJSON(result);
+          const data = convertKeyStringToObject(result);
           socket.emit(channel, data);
         })
       })

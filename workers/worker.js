@@ -8,7 +8,7 @@ const redisPub = new Redis(process.env.REDIS_URL)
 const moment = require('moment')
 const interval = require('interval-promise')
 const ccxt = require('ccxt')
-const { convertToHMSETString } = require('../helpers/objects')
+const { convertObjectToKeyString } = require('../helpers/objects')
 
 class Worker {
   constructor (name) {
@@ -142,7 +142,7 @@ class Worker {
 
         // Prepare the data for Redis HMSET
         // Returing a new Object like: "ETH/BTC": { string }
-        const marketsStringHMSET = convertToHMSETString(markets)
+        const marketsStringHMSET = convertObjectToKeyString(markets)
 
         // Use Redis HMSET to set all the keys at once
         redis.hmset(this.cacheKey['markets'], marketsStringHMSET)
@@ -220,7 +220,7 @@ class Worker {
     try {
       const totalTickers = this.getDataLength(tickers)
       const tickersString = this.stringifyData(tickers)
-      const tickersStringHMSET = convertToHMSETString(tickers) // Prepare the data for Redis HMSET. Returing a new Object like: "ETH/BTC": { string }
+      const tickersStringHMSET = convertObjectToKeyString(tickers) // Prepare the data for Redis HMSET. Returing a new Object like: "ETH/BTC": { string }
 
       // Store each ticker in it's own key
       await redis.hmset(this.cacheKey['tickers'], tickersStringHMSET)

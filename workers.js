@@ -15,7 +15,7 @@ Raven.context(function () {
 
   const Binance = require('./workers/binance')
   const Bittrex = require('./workers/bittrex')
-  const BittrexWebsocket = require('./workers/bittrex-websocket')
+  // const BittrexWebsocket = require('./workers/bittrex-websocket')
   const Kraken = require('./workers/kraken')
   const Bitfinex = require('./workers/bitfinex')
   const Poloniex = require('./workers/poloniex')
@@ -34,7 +34,7 @@ Raven.context(function () {
   workers['bitfinex'] = new Bitfinex()
   workers['bithumb'] = new Bithumb()
   // workers['bittrex'] = new Bittrex()
-  workers['bittrex'] = new BittrexWebsocket()
+  workers['bittrex'] = new Bittrex()
   workers['hitbtc'] = new Hitbtc()
   workers['lbank'] = new Lbank()
   workers['bitz'] = new Bitz()
@@ -52,7 +52,7 @@ Raven.context(function () {
 
     // Log status to console from each worker
     Object.keys(exchangesEnabled).forEach((exchangeSlug, index) => {
-      logger(workers[exchangeSlug])
+      // logger(workers[exchangeSlug])
 
       // Per worker we can determine when we want a restart
       // Restart the worker if we should

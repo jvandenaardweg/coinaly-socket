@@ -22,6 +22,8 @@ class Binance extends Worker {
       // So the transformer has access to all the goodies CCXT gives us
       this.transformer = new BinanceTransformer(this.ccxt)
 
+      console.log(`${this.exchangeName} Websocket:`, 'Opening Websocket Connection...')
+
       // Now creating the connection...
       this.websocket = new WebSocket(this.websocketEndpoint)
 

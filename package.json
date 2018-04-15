@@ -27,6 +27,7 @@
     "collectCoverage": true
   },
   "dependencies": {
+    "autobahn": "^18.3.2",
     "axios": "^0.18.0",
     "ccxt": "^1.12.149",
     "cli-table": "^0.3.1",
@@ -54,7 +55,7 @@
     "signalr-client": "0.0.17",
     "socket.io-client": "^2.1.0",
     "socketcluster": "^11.1.0",
-    "socketcluster-client": "^11.0.0",
+    "socketcluster-client": "^11.0.1",
     "ws": "^5.1.0",
     "zlib": "^1.0.5"
   }

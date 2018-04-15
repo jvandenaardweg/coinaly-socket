@@ -218,6 +218,13 @@ class Worker {
     return (typeof data === 'string') ? Object.keys(JSON.parse(data)).length : Object.keys(data).length
   }
 
+  async cacheTicker (ticker) {
+    await redis.hset(this.cacheKey['tickers'], ticker.symbol, JSON.stringify(ticker))
+    this.redisPublishChangeTicker(ticker.symbol, ticker)
+    this.redisPublishChangeExchange(ticker)
+    // console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Ticker')
+  }
+
   async cacheTickers (tickers) {
     try {
       const totalTickers = this.getDataLength(tickers)

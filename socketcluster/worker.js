@@ -7,7 +7,6 @@ const serveStatic = require('serve-static')
 const path = require('path')
 const morgan = require('morgan')
 const healthChecker = require('sc-framework-health-check')
-const interval = require('interval-promise')
 const axios = require('axios')
 const ccxt = require('ccxt')
 const md5 = require('md5')
@@ -67,11 +66,6 @@ class Worker extends SCWorker {
       // Send the available exchanges and channels to the user
       socket.emit('EXCHANGES~AVAILABLE', Object.keys(exchangesEnabled))
 
-      socket.on('disconnect', function () {
-        console.log('Socketcluster:', 'Client disconnected')
-        clearInterval(interval);
-      })
-
       // On subscribe, send a cached response from Redis
       // So the user receives the first data immeadiatyly
       socket.on('subscribe', function (channel) {
@@ -79,14 +73,28 @@ class Worker extends SCWorker {
         const channelSplitted = channel.split('~')
         const type = channelSplitted[0] // TICKERS?
         const exchange = channelSplitted[1] // BITTREX, BINANCE, POLONIEX etc...?
-        const stream = channelSplitted[2] // NEW, BTC/ETH etc...?
+        const symbol = channelSplitted[2] // NEW, BTC/ETH etc...?
 
-        // Get cached tickers from Redis
-        redis.hgetall(`exchanges:${exchange.toLowerCase()}:tickers`)
-        .then(function (result) {
-          const data = convertKeyStringToObject(result);
-          socket.emit(channel, data);
-        })
+        if (symbol === 'NEW') {
+          // Get cached tickers from Redis
+          redis.hgetall(`exchanges:${exchange.toLowerCase()}:tickers`)
+          .then(function (result) {
+            const data = convertKeyStringToObject(result);
+            socket.emit(channel, data);
+          })
+        } else if (symbol) {
+          redis.hget(`exchanges:${exchange.toLowerCase()}:tickers`, symbol)
+          .then(function (result) {
+            socket.emit(channel, JSON.parse(result));
+          })
+        } else {
+          console.log('Not handled yet')
+        }
+
+      })
+
+      socket.on('disconnect', function () {
+        console.log('Socketcluster:', 'Client disconnected')
       })
     })
   }

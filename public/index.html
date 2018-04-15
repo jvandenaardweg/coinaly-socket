@@ -23,37 +23,45 @@
         padding: 20px;
         border-radius: 3px;
       }
-      .response .response__time {
+      .response .response__time,
+      .response .response__channel {
         opacity: 0.5;
         font-size: 12px;
       }
+
       .response .response__time span {
         display: block;
       }
+
       .is-hidden {
         display: none;
+      }
+
+      .available-exchanges {
+        padding: 20px;
+        background-color: #eeeeee;
       }
     </style>
   </head>
   <body>
 
-    <div>
+    <div class="available-exchanges">
       <strong>Available exchanges:</strong>
       <pre id="available-exchanges"></pre>
     </div>
 
     <hr />
-    <!-- <pre id="available-channels"></pre> -->
 
     <div id="responses"></div>
 
     <div class="response is-hidden" id="response-template">
       <div class="response__header">
         <strong>
-          <span class="response_name">Waiting...</span>
+          <span class="response__name">Waiting...</span>
           (<span class="response__total">...</span>)
         </strong>
         <div class="response__time">Last update: <span class="response__update">Waiting...</span></div>
+        <div class="response__channel">Channel: <span>...</span></div>
       </div>
       <div class="response__body">
         <pre>
@@ -76,10 +84,7 @@
         console.log('CONNECTED');
       });
 
-      socket.on('TICKERS~BITTREX~NEW', function(data) {
-        console.log('subscribe', data)
-      })
-
+      //
       socket.on('EXCHANGES~AVAILABLE', function (data) {
         console.log('Available exchanges: ', data);
         availableExchanges = data
@@ -87,48 +92,73 @@
 
         // Watch each available channel for demo purposes
         availableExchanges.forEach(function (exchange) {
+          // Set correct channel name
           var uppercasedExchange = exchange.toUpperCase()
-          var sourceTemplate = document.getElementById('response-template')
-          var template = sourceTemplate.cloneNode(true)
-          var responsesHolder = document.getElementById('responses')
-          template.setAttribute('id', exchange)
-          template.classList.remove('is-hidden')
+          var channelName = 'TICKERS~' + uppercasedExchange + '~NEW'
 
-          responsesHolder.appendChild(template)
+          // Prepare the HTML template
+          createElementFromTemplate(exchange)
 
-          channels[exchange] = socket.subscribe('TICKERS~' + uppercasedExchange + '~NEW', {batch: true})
+          // Set data on element
+          var exchangeElement = document.getElementById(exchange)
+          exchangeElement.querySelector('.response__name').innerHTML = exchange
+          exchangeElement.querySelector('.response__channel span').innerHTML = channelName
 
-          channels[exchange].watch(function (data) {
-            console.log('Received Exchange Data:', data);
-            var exchangeElement = document.getElementById(exchange)
+          // Subscribe to the channel
+          channels[exchange] = socket.subscribe(channelName, {batch: true})
+
+          // Make sure we get a cached response from the socket first
+          // This cache response contains the latest data, so we can display this immediately to the user
+          socket.on(channelName, function(data) {
             exchangeElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
-            exchangeElement.querySelector('.response_name').innerHTML = exchange
+            // console.log('Subscribed to channel, use first data:', data)
+          })
+
+          // Keep watching for channel changes
+          channels[exchange].watch(function (data) {
+            // console.log('Received Exchange Data:', data);
+            exchangeElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
+
             exchangeElement.querySelector('.response__total').innerHTML = Object.keys(data).length
             exchangeElement.querySelector('.response__update').innerHTML = new Date()
           })
         })
+
+        createTickerElement('BITTREX', 'BTC/USDT')
+        createTickerElement('BINANCE', 'BTC/USDT')
+        createTickerElement('OKEX', 'BTC/USDT')
+        createTickerElement('KRAKEN', 'BTC/EUR')
+        createTickerElement('POLONIEX', 'ETH/BTC')
       })
 
 
-      // var sampleChannel = socket.subscribe('sample');
-      // var binanceNewChannel = socket.subscribe('TICKERS~BINANCE~NEW', {batch: true});
-      // var bittrexNewChannel = socket.subscribe('TICKERS~BITTREX~NEW', {batch: true});
+      function createElementFromTemplate (exchange) {
+        var sourceTemplate = document.getElementById('response-template')
+        var template = sourceTemplate.cloneNode(true)
+        var responsesHolder = document.getElementById('responses')
+        template.setAttribute('id', exchange)
+        template.classList.remove('is-hidden')
+        responsesHolder.appendChild(template)
+      }
 
-      // binanceNewChannel.watch(function (data) {
-      //   console.log('Received Exchange Data:', data);
-      //   var binanceElement = document.getElementById('binance')
-      //   binanceElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
-      //   binanceElement.querySelector('.response__total').innerHTML = Object.keys(data).length
-      //   binanceElement.querySelector('.response__update').innerHTML = new Date()
-      // })
+      function createTickerElement (exchange, symbol) {
+        var tickerChannelName = `TICKERS~${exchange}~${symbol}`
+        var elementId = `${exchange}-ticker`
+        var tickerChannel = socket.subscribe(tickerChannelName, {batch: true})
+        createElementFromTemplate(elementId)
+        var tickerElement = document.getElementById(elementId)
+        tickerElement.querySelector('.response__name').innerHTML = `${exchange} ${symbol}`
+        tickerElement.querySelector('.response__channel span').innerHTML = tickerChannelName
 
-      // bittrexNewChannel.watch(function (data) {
-      //   console.log('Received Exchange Data:', data);
-      //   var bittrexElement = document.getElementById('bittrex')
-      //   bittrexElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
-      //   bittrexElement.querySelector('.response__total').innerHTML = Object.keys(data).length
-      //   bittrexElement.querySelector('.response__update').innerHTML = new Date()
-      // })
+        tickerChannel.watch(function (data) {
+          // console.log('Received Exchange Data:', data);
+          tickerElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
+
+          tickerElement.querySelector('.response__total').innerHTML = 1
+          tickerElement.querySelector('.response__update').innerHTML = new Date()
+        })
+      }
+
     </script>
   </body>
 </html>

@@ -26,7 +26,6 @@ Raven.context(function () {
   const Lbank = require('./workers/lbank')
   const Bitz = require('./workers/bitz')
   const Liqui = require('./workers/liqui')
-  const Cryptocompare = require('./workers/cryptocompare')
 
   // Order reflects trading volumes on Coinmarketcap at 12 apr. 2018
   workers['binance'] = new Binance()

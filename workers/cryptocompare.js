@@ -26,7 +26,7 @@ class Cryptocompare extends Worker {
   restart () {
     console.log(`${this.exchangeName} Websocket:`, 'Restarting...')
     this.websocket.terminate()
-    this.restartedAt = new Date()
+    this.setLastDate('lastRestartedAt')
     this.start()
   }
 

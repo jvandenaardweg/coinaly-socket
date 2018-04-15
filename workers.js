@@ -101,7 +101,7 @@ function logger (workerInstance) {
     `- Last update: ${workerInstance.lastUpdateFromNow()}\n`,
     `- Last reload markets: ${workerInstance.lastReloadMarketFromNow()}\n`,
     `- Started since: ${workerInstance.startedAt}\n`,
-    `- Restarted at: ${workerInstance.restartedAt}\n`,
+    `- Restarted at: ${workerInstance.lastRestartedAt}\n`,
     `- Last error at: ${workerInstance.lastErrorAt}\n`,
     `- Last reload market at: ${workerInstance.lastReloadMarketsAt}\n`
   )

@@ -21,7 +21,7 @@ class Worker {
     this.totalUpdates = 0
     this.restartNow = false
     this.restartAfterHours = null
-    this.restartedAt = null
+    this.lastRestartedAt = null
     this.lastUpdateAt = null
     this.lastErrorAt = null
     this.lastCheckedAt = null
@@ -40,7 +40,7 @@ class Worker {
   // Example: this.runningTime('seconds') returns running time in seconds
   runningTime (unitOfTime) {
     let timeToUse = this.startedAt
-    if (this.restartedAt) timeToUse = this.restartedAt
+    if (this.lastRestartedAt) timeToUse = this.lastRestartedAt
     if (timeToUse) return moment().diff(timeToUse, unitOfTime) // seconds, hours, minutes etc...
     return 0
   }
@@ -280,7 +280,7 @@ class Worker {
     this.setLastDate('lastErrorAt')
     this.setIncrementTotals('totalErrors')
     // console.log(`${this.exchangeName} Worker:`, 'CCXT error', e)
-    redis.hset(this.cacheKey['status'], 'errorMessage', JSON.stringify(e))
+
 
     if (e instanceof ccxt.DDoSProtection || e.message.includes('ECONNRESET')) {
       console.log(`${this.exchangeName} Worker:`, 'CCXT Error', 'DDOS Protection', e)

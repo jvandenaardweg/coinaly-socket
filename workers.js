@@ -52,7 +52,7 @@ Raven.context(function () {
 
     // Log status to console from each worker
     Object.keys(exchangesEnabled).forEach((exchangeSlug, index) => {
-      // logger(workers[exchangeSlug])
+      logger(workers[exchangeSlug])
 
       // Per worker we can determine when we want a restart
       // Restart the worker if we should

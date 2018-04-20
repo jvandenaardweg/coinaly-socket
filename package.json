@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "scripts": {
     "start": "./node_modules/forever/bin/forever websocket-server.js",
-    "dev": "nodemon websocket-server.js",
+    "dev": "nodemon websocket-server.js | nodemon workers.js",
     "start:docker": "node socketcluster/dockerwait.js && node ${SOCKETCLUSTER_MASTER_CONTROLLER:-server.js}",
     "start:workers": "./node_modules/forever/bin/forever workers.js",
     "dev:workers": "nodemon workers.js",

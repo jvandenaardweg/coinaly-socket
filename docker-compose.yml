@@ -1,0 +1,18 @@
+version: '2'
+services:
+  # web: takes Dockerfile when running docker-compose up
+  web:
+    build: .
+    ports:
+      - "8000:8000"
+    env_file: .env
+    command: "npm run dev"
+    volumes:
+      - .:/opt/app
+  redis:
+    image: redis:alpine
+    ports:
+      - "6380:6379"
+      # Port 6379 is used within the container, use that in your .env file
+      # Port 6380 is opened on your host.
+      # Use port 6380 to connect by using a Redis client like Medis

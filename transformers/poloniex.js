@@ -14,7 +14,8 @@ class PoloniexTransformer {
 
   getSymbolById (symbolId) {
     // Takes something like "ETHBTC", "ETH-BTC" (symbol naming the exchange uses in their API) and returns "ETH/BTC"
-    return this.ccxt.marketsById[symbolId].symbol
+    if (this.ccxt.marketsById[symbolId]) return this.ccxt.marketsById[symbolId].symbol
+    return null
   }
 
   getRelativeChange (ticker) {

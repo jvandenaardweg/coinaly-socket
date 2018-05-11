@@ -14,7 +14,8 @@ class BittrexTransformer {
 
   getSymbolById (symbolId) {
     // Takes something like "ETHBTC", "ETH-BTC" (symbol naming the exchange uses in their API) and returns "ETH/BTC"
-    return this.ccxt.marketsById[symbolId].symbol
+    if (this.ccxt.marketsById[symbolId]) return this.ccxt.marketsById[symbolId].symbol
+    return null
 
     /*
     marketsById returns something like this (when loadMarkets is run before that)

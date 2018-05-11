@@ -7,7 +7,7 @@ class BittrexTransformer {
 
   transformMultipleObjects (input) {
     return input.reduce((result, object) => {
-      result[this.getSymbolById(object.M)] = this.transformSingleObject(object)
+      if (this.getSymbolById(object.M)) result[this.getSymbolById(object.M)] = this.transformSingleObject(object)
       return result
     }, {})
   }

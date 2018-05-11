@@ -7,7 +7,7 @@ class PoloniexTransformer {
 
   transformMultipleObjects (input) {
     return input.reduce((result, object) => {
-      result[this.getSymbolById(object[0])] = this.transformSingleObject(object)
+      if (this.getSymbolById(object[0])) result[this.getSymbolById(object[0])] = this.transformSingleObject(object)
       return result
     }, {})
   }

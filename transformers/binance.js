@@ -7,7 +7,7 @@ class BinanceTransformer {
 
   transformMultipleObjects (input) {
     return input.reduce((result, object) => {
-      result[this.getSymbolById(object.s)] = this.transformSingleObject(object)
+      if (this.getSymbolById(object.s)) result[this.getSymbolById(object.s)] = this.transformSingleObject(object)
       return result
     }, {})
   }

@@ -73,8 +73,8 @@ class BittrexTransformer {
       'percentage': this.getPercentage(input),
       'average': undefined,
       'baseVolume': this.ccxt.safeFloat(input, 'm'),
-      'quoteVolume': this.ccxt.safeFloat(input, 'V'),
-      'info': input
+      'quoteVolume': this.ccxt.safeFloat(input, 'V')
+      // 'info': input
     }
 
     return output

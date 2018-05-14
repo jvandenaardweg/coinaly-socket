@@ -25,7 +25,7 @@ redis.on('end', function () {
 
 // redis.monitor().then(function (monitor) {
 //   monitor.on('monitor', function (time, args, source, database) {
-//     console.log(`Redis: ${args[0]} -> ${args[1]}`)
+//     if (args[1] && !args[1].includes('TICKERS~')) console.log(`Redis: ${args[0]} -> ${args[1]}`)
 //   })
 // })
 

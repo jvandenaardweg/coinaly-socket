@@ -54,8 +54,8 @@ class PoloniexTransformer {
       'percentage': relativeChange * 100,
       'average': undefined,
       'baseVolume': this.ccxt.safeFloat(input, 5),
-      'quoteVolume': this.ccxt.safeFloat(input, 6),
-      'info': input
+      'quoteVolume': this.ccxt.safeFloat(input, 6)
+      // 'info': input
     }
 
     return output

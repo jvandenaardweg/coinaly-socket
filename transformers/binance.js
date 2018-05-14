@@ -59,8 +59,8 @@ class BinanceTransformer {
       'percentage': this.ccxt.safeFloat(input, 'P'),
       'average': undefined,
       'baseVolume': this.ccxt.safeFloat(input, 'v'),
-      'quoteVolume': this.ccxt.safeFloat(input, 'q'),
-      'info': input
+      'quoteVolume': this.ccxt.safeFloat(input, 'q')
+      // 'info': input
     }
 
     return output

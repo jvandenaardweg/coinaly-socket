@@ -225,9 +225,6 @@ class Worker {
       // Store each ticker in it's own key
       await redis.hmset(this.cacheKey['tickers'], tickersStringHMSET)
 
-      // Store object of all keys in "all"
-      // await redis.hset(this.cacheKey['tickers'], 'all', tickersString)
-
       // Publish change for each symbol
       Object.keys(tickers).forEach(symbol => {
         this.redisPublishChangeTicker(symbol, tickers[symbol])

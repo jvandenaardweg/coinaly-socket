@@ -7,15 +7,11 @@ const serveStatic = require('serve-static')
 const path = require('path')
 const morgan = require('morgan')
 const healthChecker = require('sc-framework-health-check')
-const axios = require('axios')
-const ccxt = require('ccxt')
-const md5 = require('md5')
 const redis = require('../redis')
 const Redis = require('ioredis')
 const redisSub = new Redis(process.env.REDIS_URL)
 const util = require('util')
 const { convertKeyStringToObject } = require('../helpers/objects')
-
 const exchangesEnabled = require('../exchanges-enabled')
 
 class Worker extends SCWorker {
@@ -44,8 +40,6 @@ class Worker extends SCWorker {
 
     httpServer.on('request', app)
 
-    // var count = 0;
-
     // Loop through the enabled exchanges to set the correct PubSub events to subscribe to
     Object.keys(exchangesEnabled).forEach((exchangeSlug, index) => {
       const eventName = exchangesEnabled[exchangeSlug].tickersEvent
@@ -61,7 +55,7 @@ class Worker extends SCWorker {
     })
 
     scServer.on('connection', function (socket) {
-      console.log('Socketcluster:', 'Client connection', socket.id)
+      console.log('Socketcluster:', 'Client connection', `Socket ID: ${socket.id}`)
 
       // Send the available exchanges and channels to the user
       socket.emit('EXCHANGES~AVAILABLE', Object.keys(exchangesEnabled))
@@ -69,7 +63,7 @@ class Worker extends SCWorker {
       // On subscribe, send a cached response from Redis
       // So the user receives the first data immeadiatyly
       socket.on('subscribe', function (channel) {
-        console.log('subscribe', channel)
+        console.log('Socketcluster:', 'Client subscribe', channel, `Socket ID: ${socket.id}`)
         const channelSplitted = channel.split('~')
         const type = channelSplitted[0] // TICKERS?
         const exchange = channelSplitted[1] // BITTREX, BINANCE, POLONIEX etc...?
@@ -78,15 +72,17 @@ class Worker extends SCWorker {
         if (symbol === 'NEW') {
           // Get cached tickers from Redis
           redis.hgetall(`exchanges:${exchange.toLowerCase()}:tickers`)
-          .then(function (result) {
+          .then((result) => {
             const data = convertKeyStringToObject(result);
             socket.emit(channel, data);
           })
+          .catch(handleRedisError)
         } else if (symbol) {
           redis.hget(`exchanges:${exchange.toLowerCase()}:tickers`, symbol)
-          .then(function (result) {
+          .then((result) => {
             socket.emit(channel, JSON.parse(result));
           })
+          .catch(handleRedisError)
         } else {
           console.log('Not handled yet')
         }

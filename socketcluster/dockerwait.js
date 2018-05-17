@@ -1,3 +1,5 @@
+// Source: https://github.com/SocketCluster/socketcluster/tree/master/sample
+
 /*
   This script waits for the master controller script to become available.
   With orchestrators like Kubernetes, the master controller file may be fed in through

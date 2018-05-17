@@ -1,22 +1,26 @@
+// Source: https://github.com/SocketCluster/socketcluster/tree/master/sample
+
 require('dotenv').config()
 const Raven = require('raven')
 Raven.config(process.env.SENTRY_DSN).install()
-const SCWorker = require('socketcluster/scworker')
-const express = require('express')
-const serveStatic = require('serve-static')
-const path = require('path')
-const morgan = require('morgan')
-const healthChecker = require('sc-framework-health-check')
 const redis = require('../redis')
 const Redis = require('ioredis')
 const redisSub = new Redis(process.env.REDIS_URL)
 const util = require('util')
-const { convertKeyStringToObject } = require('../helpers/objects')
+const { convertKeyStringToObject } = require('../helpers/objects') 
 const exchangesEnabled = require('../exchanges-enabled')
+
+
+var SCWorker = require('socketcluster/scworker');
+var express = require('express');
+var serveStatic = require('serve-static');
+var path = require('path');
+var morgan = require('morgan');
+var healthChecker = require('sc-framework-health-check');
 
 class Worker extends SCWorker {
   run() {
-    console.log('Socketcluster:', '   >> Worker PID:', process.pid);
+    console.log('   >> Worker PID:', process.pid);
     var environment = this.options.environment;
 
     var app = express();
@@ -24,21 +28,17 @@ class Worker extends SCWorker {
     var httpServer = this.httpServer;
     var scServer = this.scServer;
 
-    // Sentry error handling
-    app.use(Raven.requestHandler())
-    app.use(Raven.errorHandler())
-
     if (environment === 'dev') {
       // Log every HTTP request. See https://github.com/expressjs/morgan for other
       // available formats.
       app.use(morgan('dev'));
     }
-    app.use(serveStatic(path.resolve(__dirname, '../public')))
+    app.use(serveStatic(path.resolve(__dirname, '../public')));
 
     // Add GET /health-check express route
-    healthChecker.attach(this, app)
+    healthChecker.attach(this, app);
 
-    httpServer.on('request', app)
+    httpServer.on('request', app);
 
     // Loop through the enabled exchanges to set the correct PubSub events to subscribe to
     Object.keys(exchangesEnabled).forEach((exchangeSlug, index) => {

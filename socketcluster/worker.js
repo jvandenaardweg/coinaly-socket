@@ -48,7 +48,7 @@ class Worker extends SCWorker {
 
     redisSub.on('pmessage', function (pattern, channel, message) {
       // Publishing something like this:
-      // Channel: TICKERS~BITTREX~NEW, TICKERS~BITTREX~BTC/USDT etc...
+      // Channel: TICKERS~BITTREX, TICKERS~BITTREX~BTC/USDT etc...
       // Data: {Objects}
       // console.log('Publishing to websocket:', channel)
       scServer.exchange.publish(channel, JSON.parse(message))
@@ -69,8 +69,10 @@ class Worker extends SCWorker {
         const exchange = channelSplitted[1] // BITTREX, BINANCE, POLONIEX etc...?
         const symbol = channelSplitted[2] // NEW, BTC/ETH etc...?
 
-        if (symbol === 'NEW') {
-          // Get cached tickers from Redis
+        sendWorkerStatus (exchange, channel, socket)
+
+        if (!symbol) {
+          // Get last cached tickers from Redis and send it to the user
           redis.hgetall(`exchanges:${exchange.toLowerCase()}:tickers`)
           .then((result) => {
             const data = convertKeyStringToObject(result);

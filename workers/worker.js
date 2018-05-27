@@ -247,8 +247,8 @@ class Worker {
   }
 
   redisPublishChangeExchange (tickers) {
-    // Publishing something like this: TICKERS~BITTREX~NEW
-    redisPub.publish(`TICKERS~${this.exchangeCapitalized}~NEW`, JSON.stringify(tickers))
+    // Publishing something like this: TICKERS~BITTREX
+    redisPub.publish(`TICKERS~${this.exchangeCapitalized}`, JSON.stringify(tickers))
   }
 
   async deleteCache (key) {

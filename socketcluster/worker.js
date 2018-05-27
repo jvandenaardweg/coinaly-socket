@@ -43,7 +43,7 @@ class Worker extends SCWorker {
     // Loop through the enabled exchanges to set the correct PubSub events to subscribe to
     Object.keys(exchangesEnabled).forEach((exchangeSlug, index) => {
       const eventName = exchangesEnabled[exchangeSlug].tickersEvent
-      redisSub.psubscribe(`${eventName}~*`)
+      redisSub.psubscribe(`${eventName}*`)
     })
 
     redisSub.on('pmessage', function (pattern, channel, message) {

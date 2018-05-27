@@ -18,6 +18,15 @@ var path = require('path');
 var morgan = require('morgan');
 var healthChecker = require('sc-framework-health-check');
 
+// function sendWorkerStatus (exchange, channel, socket) {
+//   // Send the worker status
+//   redis.hgetall(`workers:${exchange.toLowerCase()}:status`)
+//   .then((result) => {
+//     const data = convertKeyStringToObject(result);
+//     socket.emit(channel, data);
+//   })
+// }
+
 class Worker extends SCWorker {
   run() {
     console.log('   >> Worker PID:', process.pid);
@@ -69,7 +78,7 @@ class Worker extends SCWorker {
         const exchange = channelSplitted[1] // BITTREX, BINANCE, POLONIEX etc...?
         const symbol = channelSplitted[2] // NEW, BTC/ETH etc...?
 
-        sendWorkerStatus (exchange, channel, socket)
+        // sendWorkerStatus (exchange, channel, socket)
 
         if (!symbol) {
           // Get last cached tickers from Redis and send it to the user

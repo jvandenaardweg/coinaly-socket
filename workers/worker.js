@@ -106,6 +106,11 @@ class Worker {
     return redis.hset(this.cacheKey['status'], type, this[type])
   }
 
+  // Saves the last error to Redis for debugging purposes
+  setLastError (error) {
+    return redis.hset(this.cacheKey['status'], 'lastError', error)
+  }
+
   // Creates an instance of CCXT to be used by the worker
   async createCCXTInstance () {
     this.deleteCCXTInstance()
@@ -259,6 +264,8 @@ class Worker {
     } catch(e) {
       this.setLastDate('lastErrorAt')
       this.setIncrementTotals('totalErrors')
+      const error = (e.message) ? e.message : e
+      this.setLastError(error)
       console.log(`${this.exchangeName} Worker:`, 'Error getting cached market data to compare', this.exchangeName, e)
     }
   }
@@ -289,8 +296,8 @@ class Worker {
   handleCCXTExchangeError (e) {
     this.setLastDate('lastErrorAt')
     this.setIncrementTotals('totalErrors')
-    // console.log(`${this.exchangeName} Worker:`, 'CCXT error', e)
-
+    const error = (e.message) ? e.message : e
+    this.setLastError(error)
 
     if (e instanceof ccxt.DDoSProtection || e.message.includes('ECONNRESET')) {
       console.log(`${this.exchangeName} Worker:`, 'CCXT Error', 'DDOS Protection', e)

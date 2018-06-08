@@ -1,4 +1,4 @@
-const Worker = require('./worker')
+const Worker = require('./base')
 const ccxt = require('ccxt')
 const signalR = require ('signalr-client')
 const jsonic = require('jsonic')

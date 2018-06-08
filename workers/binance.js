@@ -1,7 +1,7 @@
 /*
 Binance API Docs: https://github.com/binance-exchange/binance-official-api-docs/blob/master/web-socket-streams.md
 */
-const Worker = require('./worker')
+const Worker = require('./base')
 const WebSocket = require('ws')
 const BinanceTransformer = require('../transformers/binance')
 

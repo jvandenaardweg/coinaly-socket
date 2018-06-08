@@ -1,4 +1,4 @@
-const Worker = require('./worker')
+const Worker = require('./index')
 const moment = require('moment')
 
 // const redisMock = {

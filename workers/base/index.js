@@ -2,13 +2,13 @@
 require('dotenv').config()
 var Raven = require('raven')
 Raven.config(process.env.SENTRY_DSN).install()
-const redis = require('../redis')
+const redis = require('../../redis')
 const Redis = require('ioredis')
 const redisPub = new Redis(process.env.REDIS_URL)
 const moment = require('moment')
 const interval = require('interval-promise')
 const ccxt = require('ccxt')
-const { convertObjectToKeyString, convertKeyStringToObject } = require('../helpers/objects')
+const { convertObjectToKeyString, convertKeyStringToObject } = require('../../helpers/objects')
 
 class Worker {
   constructor (name) {

@@ -1,6 +1,6 @@
 // API Docs Poloniex: https://poloniex.com/support/api/
 
-const Worker = require('./worker')
+const Worker = require('./base')
 const ccxt = require('ccxt')
 const autobahn = require('autobahn')
 const WebSocket = require('ws')

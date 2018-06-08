@@ -7,7 +7,7 @@ Raven.config(process.env.SENTRY_DSN, {
 const moment = require('moment')
 const Table = require('cli-table')
 const ccxt = require('ccxt')
-const Worker = require('./workers/worker')
+const Worker = require('./workers/base')
 const Binance = require('./workers/binance')
 const Bittrex = require('./workers/bittrex')
 const Poloniex = require('./workers/poloniex')

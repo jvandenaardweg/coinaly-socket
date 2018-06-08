@@ -1,0 +1,9 @@
+version: '2'
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6382:6379"
+      # Port 6379 is used within the container, use that in your .env file
+      # Port 6381 is opened on your host.
+      # Use port 6381 to connect by using a Redis client like Medis

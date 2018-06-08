@@ -150,18 +150,6 @@ describe('workers/worker.js', () => {
   //   expect(TestExchange.createCCXTInstance()).toBe('Error hier')
   // })
 
-  it('should convert JSON to a string', () => {
-    const input = {
-      'ETH/BTC': {
-        symbol: 'ETH/BTC',
-        last: 0.004,
-        high: 0.005,
-        low: 0.001
-      }
-    }
-    expect(typeof worker.stringifyData(input)).toBe('string')
-  })
-
   it('should return the correct object length', () => {
     const inputObject = {
       'ETH/BTC': {

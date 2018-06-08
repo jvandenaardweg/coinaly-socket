@@ -7,9 +7,7 @@ const redis = require('../redis')
 const Redis = require('ioredis')
 const redisSub = new Redis(process.env.REDIS_URL)
 const util = require('util')
-const { convertKeyStringToObject } = require('../helpers/objects') 
-const exchangesEnabled = require('../exchanges-enabled')
-
+const { convertKeyStringToObject } = require('../helpers/objects')
 
 var SCWorker = require('socketcluster/scworker');
 var express = require('express');
@@ -26,6 +24,21 @@ var healthChecker = require('sc-framework-health-check');
 //     socket.emit(channel, data);
 //   })
 // }
+
+function getAvailableExchanges () {
+  return redis.hgetall('exchanges')
+  .then(data => convertKeyStringToObject(data))
+  .then(data => {
+    const activeExchangeNames = Object.keys(data).filter(exchangeName => data[exchangeName])
+
+    // Subscribe to Redis publish events for each exchange
+    // activeExchangeNames.forEach(exchangeName => {
+    //   redisSub.psubscribe(`TICKERS~${exchangeName}*`)
+    // })
+
+    return activeExchangeNames
+  })
+}
 
 class Worker extends SCWorker {
   run() {
@@ -49,50 +62,52 @@ class Worker extends SCWorker {
 
     httpServer.on('request', app);
 
-    // Loop through the enabled exchanges to set the correct PubSub events to subscribe to
-    Object.keys(exchangesEnabled).forEach((exchangeSlug, index) => {
-      const eventName = exchangesEnabled[exchangeSlug].tickersEvent
-      redisSub.psubscribe(`${eventName}*`)
-    })
+    // Get the active/available exchanges from Redis
+    getAvailableExchanges()
+    .then(availableExchanges => {
+      availableExchanges.forEach(exchangeName => {
+        const exchangeNameUpperCased = exchangeName.toUpperCase()
+        // Set Redis subscriptions
+        redisSub.psubscribe(`TICKERS~${exchangeNameUpperCased}`) // Subscribes to global exchange changes, for example "TICKERS~BITTREX"
+        redisSub.psubscribe(`TICKERS~${exchangeNameUpperCased}~*`) // Subscribes to specific ticker changes, for example "TICKERS~BITTREX~BTC/USDT"
+      })
 
-    redisSub.on('pmessage', function (pattern, channel, message) {
-      // Publishing something like this:
-      // Channel: TICKERS~BITTREX, TICKERS~BITTREX~BTC/USDT etc...
-      // Data: {Objects}
-      // console.log('Publishing to websocket:', channel)
-      scServer.exchange.publish(channel, JSON.parse(message))
+      redisSub.on('pmessage', function (pattern, channel, message) {
+        // Publishing something like this:
+        // Channel: TICKERS~BITTREX, TICKERS~BITTREX~BTC/USDT etc...
+        // Data: {Objects}
+        scServer.exchange.publish(channel, JSON.parse(message))
+      })
     })
 
     scServer.on('connection', function (socket) {
       console.log('Socketcluster:', 'Client connection', `Socket ID: ${socket.id}`)
 
-      // Send the available exchanges and channels to the user
-      socket.emit('EXCHANGES~AVAILABLE', Object.keys(exchangesEnabled))
+      // Get the available exchanges, so we can show that to the user
+      getAvailableExchanges()
+      .then(availableExchanges => {
+        socket.emit('EXCHANGES~AVAILABLE', availableExchanges)
+      })
 
       // On subscribe, send a cached response from Redis
-      // So the user receives the first data immeadiatyly
+      // So the user receives the first data immediately
       socket.on('subscribe', function (channel) {
         console.log('Socketcluster:', 'Client subscribe', channel, `Socket ID: ${socket.id}`)
         const channelSplitted = channel.split('~')
-        const type = channelSplitted[0] // TICKERS?
-        const exchange = channelSplitted[1] // BITTREX, BINANCE, POLONIEX etc...?
-        const symbol = channelSplitted[2] // NEW, BTC/ETH etc...?
+        const type = channelSplitted[0] // TICKERS
+        const exchange = channelSplitted[1] // BITTREX, BINANCE, POLONIEX etc...
+        const symbol = channelSplitted[2] // BTC/USDT, BTC/ETH etc...
 
-        // sendWorkerStatus (exchange, channel, socket)
-
+        // Get all the cached tickers from an exchange
         if (!symbol) {
           // Get last cached tickers from Redis and send it to the user
           redis.hgetall(`exchanges:${exchange.toLowerCase()}:tickers`)
-          .then((result) => {
-            const data = convertKeyStringToObject(result);
-            socket.emit(channel, data);
-          })
+          .then(result => convertKeyStringToObject(result))
+          .then(data => socket.emit(channel, data))
           .catch(handleRedisError)
         } else if (symbol) {
           redis.hget(`exchanges:${exchange.toLowerCase()}:tickers`, symbol)
-          .then((result) => {
-            socket.emit(channel, JSON.parse(result));
-          })
+          .then(result => socket.emit(channel, JSON.parse(result)))
           .catch(handleRedisError)
         } else {
           console.log('Not handled yet')

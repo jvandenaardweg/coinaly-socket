@@ -8,7 +8,7 @@ const redisPub = new Redis(process.env.REDIS_URL)
 const moment = require('moment')
 const interval = require('interval-promise')
 const ccxt = require('ccxt')
-const { convertObjectToKeyString } = require('../helpers/objects')
+const { convertObjectToKeyString, convertKeyStringToObject } = require('../helpers/objects')
 
 class Worker {
   constructor (name) {
@@ -34,7 +34,6 @@ class Worker {
      'markets': `exchanges:${this.exchangeSlug}:markets`,
      'status': `workers:${this.exchangeSlug}:status`
     }
-    // redis.hset(this.cacheKey['status'], 'startedAt', this.startedAt)
   }
 
   // Returns the running time of the worker in the given unitOfTime
@@ -98,13 +97,13 @@ class Worker {
   setLastDate (type) {
     // lastUpdateAt, lastErrorAt, lastCheckedAt, lastResetAt, lastRestartedAt, lastReloadMarketsAt
     this[type] = new Date()
-    redis.hset(this.cacheKey['status'], type, this[type])
+    return redis.hset(this.cacheKey['status'], type, this[type])
   }
 
   setIncrementTotals (type) {
     // totalUpdates, totalErrors, totalReloadsMarkets
     this[type] = this[type] + 1
-    redis.hset(this.cacheKey['status'], type, this[type])
+    return redis.hset(this.cacheKey['status'], type, this[type])
   }
 
   // Creates an instance of CCXT to be used by the worker
@@ -114,7 +113,7 @@ class Worker {
     try {
       this.ccxt = new ccxt[this.exchangeSlug]({
         enableRateLimit: true,
-        timeout: 5000
+        timeout: 15000
       })
 
       // Now, store the available markets in Redis, so we can use this for other things
@@ -123,7 +122,6 @@ class Worker {
       // We just make sure we got the latest market data
       await this.saveMarkets()
     } catch(e) {
-      // throw new Error('Error hier')
       this.handleCCXTExchangeError(e)
     }
   }
@@ -131,8 +129,8 @@ class Worker {
   async saveMarkets () {
     try {
       const markets = await this.ccxt.loadMarkets()
-      this.setLastDate('lastReloadMarketsAt')
-      this.setIncrementTotals('totalReloadsMarkets')
+      await this.setLastDate('lastReloadMarketsAt')
+      await this.setIncrementTotals('totalReloadsMarkets')
 
       // When we got markets, delete old cache, add new cache and return the markets
       if (Object.keys(markets).length) {
@@ -145,7 +143,7 @@ class Worker {
         const marketsStringHMSET = convertObjectToKeyString(markets)
 
         // Use Redis HMSET to set all the keys at once
-        redis.hmset(this.cacheKey['markets'], marketsStringHMSET)
+        await redis.hmset(this.cacheKey['markets'], marketsStringHMSET)
 
         console.log(`${this.exchangeName} Worker:`, 'Saved markets')
         return markets
@@ -165,8 +163,8 @@ class Worker {
     return this.ccxt
   }
 
-  resetCCXT () {
-    this.setLastDate('lastResetAt')
+  async resetCCXT () {
+    await this.setLastDate('lastResetAt')
     this.deleteCCXTInstance()
     this.createCCXTInstance()
     this.startInterval('fetchTickers')
@@ -179,6 +177,16 @@ class Worker {
   }
 
   startInterval (ccxtMethod, intervalTime = 2000) {
+    let delay
+    const exchangeRateLimit = this.ccxt.rateLimit
+
+    // If the given intervalTime is lower then the rate limit, we use the rate limit
+    if (intervalTime < exchangeRateLimit) {
+      delay = exchangeRateLimit
+    } else {
+      delay = intervalTime
+    }
+
     interval(async (iteration, stop) => {
 
       await this.checkReloadMarkets()
@@ -187,22 +195,18 @@ class Worker {
         this.resetCCXT()
       } else {
         try {
-          this.setLastDate('lastCheckedAt')
+          await this.setLastDate('lastCheckedAt')
           const result = await this.ccxt[ccxtMethod]()
           if (result) {
-            this.setIncrementTotals('totalUpdates')
-            this.setLastDate('lastUpdateAt')
-            this.cacheTickers(result)
+            await this.setIncrementTotals('totalUpdates')
+            await this.setLastDate('lastUpdateAt')
+            await this.cacheTickers(result)
           }
         } catch (e) {
           this.handleCCXTExchangeError(e)
         }
       }
-    }, intervalTime, {stopOnError: false})
-  }
-
-  stringifyData (data) {
-    return (typeof data === 'string') ? data : JSON.stringify(data)
+    }, delay, {stopOnError: false})
   }
 
   getDataLength (data) {
@@ -210,30 +214,48 @@ class Worker {
   }
 
   async cacheTicker (ticker) {
+    if (ticker.info) delete ticker.info // Minimize the ticker data. We probably don't need the info object, which contains the original exchange JSON data. So we remove it.
     await redis.hset(this.cacheKey['tickers'], ticker.symbol, JSON.stringify(ticker))
-    this.redisPublishChangeTicker(ticker.symbol, ticker)
-    this.redisPublishChangeExchange(ticker)
-    // console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Ticker')
+    await this.redisPublishChangeTicker(ticker.symbol, ticker)
   }
 
   async cacheTickers (tickers) {
     try {
+      let isChanged = false // Used to check if this ticker data has a change, if so, we send an extra message to notify there's a change at an exchange
+      let totalChanged = 0
       const totalTickers = this.getDataLength(tickers)
-      const tickersString = this.stringifyData(tickers)
-      const tickersStringHMSET = convertObjectToKeyString(tickers) // Prepare the data for Redis HMSET. Returing a new Object like: "ETH/BTC": { string }
+      const cachedTickers = await redis.hgetall(this.cacheKey['tickers']).then(result => convertKeyStringToObject(result))
 
-      // Store each ticker in it's own key
-      await redis.hmset(this.cacheKey['tickers'], tickersStringHMSET)
+      // Loop through the fresh tickers we got from the exchange
+      // Cache each ticker seperately, so we can determine if a ticker has changed
+      // We use a for loop so we can leverage async/await
+      for (let symbol of Object.keys(tickers)) {
+        const cachedTicker = cachedTickers[symbol]
+        const freshTicker = tickers[symbol]
 
-      // Publish change for each symbol
-      Object.keys(tickers).forEach(symbol => {
-        this.redisPublishChangeTicker(symbol, tickers[symbol])
-      })
+        // If we got cachedTickers, we can compare the freshTicker with the cachedTicker
+        if (cachedTicker) {
+          // If the timestamp of the fresh ticker is newer then the one in cache, we cache it
+          if (freshTicker.timestamp > cachedTicker.timestamp) {
+            isChanged = true
+            totalChanged++
+            await this.cacheTicker(freshTicker)
+          }
+        } else {
+          // Ticker does not exist, just add it to the cache
+          isChanged = true
+          totalChanged++
+          await this.cacheTicker(freshTicker)
+        }
+      }
 
-      // Publish change for exchange
-      this.redisPublishChangeExchange(tickers)
+      // Publish a message there's a change in tickers for exchange X
+      if (isChanged) {
+        const newlyCachedTickers = await redis.hgetall(this.cacheKey['tickers']).then(result => convertKeyStringToObject(result))
+        console.log(`${this.exchangeName} Worker:`, 'Got new tickers', totalChanged)
+        await this.redisPublishChangeExchange(newlyCachedTickers)
+      }
 
-      console.log(`${this.exchangeName} Worker:`, 'Redis', 'Saved Tickers', totalTickers)
     } catch(e) {
       this.setLastDate('lastErrorAt')
       this.setIncrementTotals('totalErrors')
@@ -243,12 +265,12 @@ class Worker {
 
   redisPublishChangeTicker (symbol, ticker) {
     // Publishing something like this: TICKERS~BITTREX~BTC/USDT
-    redisPub.publish(`TICKERS~${this.exchangeCapitalized}~${symbol}`, JSON.stringify(ticker))
+    return redisPub.publish(`TICKERS~${this.exchangeCapitalized}~${symbol}`, JSON.stringify(ticker))
   }
 
   redisPublishChangeExchange (tickers) {
     // Publishing something like this: TICKERS~BITTREX
-    redisPub.publish(`TICKERS~${this.exchangeCapitalized}`, JSON.stringify(tickers))
+    return redisPub.publish(`TICKERS~${this.exchangeCapitalized}`, JSON.stringify(tickers))
   }
 
   async deleteCache (key) {

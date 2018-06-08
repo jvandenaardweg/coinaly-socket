@@ -13,6 +13,13 @@
         width: 300px;
         display: inline-block;
         margin: 10px;
+        padding: 10px;
+        border: 3px #ccc solid;
+        border-radius: 6px;
+        background-color: #fff;
+        height: 100px;
+        overflow: hidden;
+        transition: 250ms border-color;
       }
       .response pre {
         word-break: break-word;
@@ -33,14 +40,43 @@
         display: block;
       }
 
+      .response__header {
+        position: relative;
+      }
+
+      .response__header strong {
+        display: block;
+        font-size: 18px;
+        margin-bottom: 10px;
+      }
+
+      .response__badge {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background-color: #ccc;
+        color: #000;
+        font-size: 12px;
+        border-radius: 3px;
+        padding: 5px 7px;
+      }
+
       .is-hidden {
         display: none;
       }
 
       .available-exchanges {
         padding: 20px;
-        background-color: #eeeeee;
+        background-color: #eee;
+        border-radius: 6px;
+        margin: 10px;
+        border: 3px #ccc solid;
       }
+
+      .is-updated {
+        border-color: green;
+      }
+
     </style>
   </head>
   <body>
@@ -50,24 +86,25 @@
       <pre id="available-exchanges"></pre>
     </div>
 
-    <hr />
+    <!-- <hr /> -->
 
     <div id="responses"></div>
 
     <div class="response is-hidden" id="response-template">
       <div class="response__header">
         <strong>
-          <span class="response__name">Waiting...</span>
+          <span class="response__name">...</span>
           (<span class="response__total">...</span>)
         </strong>
-        <div class="response__time">Last update: <span class="response__update">Waiting...</span></div>
+        <div class="response__badge">Waiting...</div>
+        <div class="response__time">Last update: <span class="response__update">...</span></div>
         <div class="response__channel">Channel: <span>...</span></div>
       </div>
-      <div class="response__body">
+      <!-- <div class="response__body">
         <pre>
           Waiting...
         </pre>
-      </div>
+      </div> -->
     </div>
 
     <script type="text/javascript">
@@ -110,17 +147,24 @@
           // Make sure we get a cached response from the socket first
           // This cache response contains the latest data, so we can display this immediately to the user
           socket.on(channelName, function(data) {
-            exchangeElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
-            // console.log('Subscribed to channel, use first data:', data)
+            // exchangeElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
           })
 
           // Keep watching for channel changes
           channels[exchange].watch(function (data) {
-            // console.log('Received Exchange Data:', data);
-            exchangeElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
-
-            exchangeElement.querySelector('.response__total').innerHTML = Object.keys(data).length
+            // exchangeElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
+            const totalData = Object.keys(data).length
+            exchangeElement.querySelector('.response__total').innerHTML = totalData
             exchangeElement.querySelector('.response__update').innerHTML = new Date()
+
+            if (data) {
+              exchangeElement.querySelector('.response__badge').style.display = 'none'
+              exchangeElement.classList.add('is-updated')
+              clearTimeout(timeout)
+              var timeout = setTimeout(() => {
+                exchangeElement.classList.remove('is-updated')
+              }, 500)
+            }
           })
         })
 
@@ -151,11 +195,19 @@
         tickerElement.querySelector('.response__channel span').innerHTML = tickerChannelName
 
         tickerChannel.watch(function (data) {
-          // console.log('Received Exchange Data:', data);
-          tickerElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
-
+          // tickerElement.querySelector('pre').innerHTML = JSON.stringify(data, undefined, 2)
+          // const totalData = Object.keys(data).length
           tickerElement.querySelector('.response__total').innerHTML = 1
           tickerElement.querySelector('.response__update').innerHTML = new Date()
+          if (data) {
+            tickerElement.querySelector('.response__badge').style.display = 'none'
+            tickerElement.classList.add('is-updated')
+
+            clearTimeout(timeout)
+            var timeout = setTimeout(() => {
+              tickerElement.classList.remove('is-updated')
+            }, 500)
+          }
         })
       }
 

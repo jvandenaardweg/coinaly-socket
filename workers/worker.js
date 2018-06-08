@@ -252,7 +252,7 @@ class Worker {
       // Publish a message there's a change in tickers for exchange X
       if (isChanged) {
         const newlyCachedTickers = await redis.hgetall(this.cacheKey['tickers']).then(result => convertKeyStringToObject(result))
-        console.log(`${this.exchangeName} Worker:`, 'Got new tickers', totalChanged)
+        // console.log(`${this.exchangeName} Worker:`, 'Got new tickers', totalChanged)
         await this.redisPublishChangeExchange(newlyCachedTickers)
       }
 

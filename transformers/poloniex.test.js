@@ -11,6 +11,7 @@ describe('transformers/poloniex.js', () => {
 
     // Mock marketsById
     poloniexCCXT.marketsById = mockMarketsById
+    poloniexCCXT.ids = mockIds
 
     transformer = new PoloniexTransformer(poloniexCCXT)
   })
@@ -19,95 +20,70 @@ describe('transformers/poloniex.js', () => {
     expect(transformer).toBeInstanceOf(PoloniexTransformer)
   })
 
-  // it('should output a transformed object using the CCXT data model', () => {
-  //   expect(transformer.transformSingleObject(sampleInput[0])).toMatchObject(expectedOutput['USDT/ETC'])
-  // })
+  it('should output a transformed object using the CCXT data model', () => {
+    const transformed = transformer.transformSingleObject(sampleInput)
+    const timestamp = poloniexCCXT.milliseconds()
+    const datetime = poloniexCCXT.iso8601(timestamp)
 
-  // it('should ouput multiple objects when given multiple objects', () => {
-  //   expect(transformer.transformMultipleObjects(sampleInput)).toMatchObject(expectedOutput)
-  // })
+    const expectedOutput = {
+      "BTC/USDT": {
+        "ask": 0.14498999,
+        "askVolume": undefined,
+        "average": undefined,
+        "baseVolume": 201.12708881,
+        "bid": 0.14476833,
+        "bidVolume": undefined,
+        "change": -0.02828743,
+        "close": 0.14499000,
+        "datetime": datetime,
+        "high": 0.14955007,
+        "info": sampleInput,
+        "last": 0.14499000,
+        "low": 0.14398806,
+        "open": undefined,
+        "percentage": -2.828743,
+        "previousClose": undefined,
+        "quoteVolume": 1362.99989281,
+        "symbol": "BTC/USDT",
+        "timestamp": timestamp,
+        "vwap": undefined
+      }
+    }
+
+    expect(transformed).toMatchObject(expectedOutput)
+  })
 
 })
 
 const mockMarketsById = {
-  'USDT_ETC': {
-    symbol: 'USDT/ETC'
+  'BTC_USDT': {
+    symbol: 'BTC/USDT',
+    info: {
+      id: 1
+    }
   },
-  'USDT_XMR': {
-    symbol: 'USDT/XMR'
+  'XRP_BTC': {
+    symbol: 'XRP/BTC',
+    info: {
+      id: 2
+    }
   }
 }
+
+const mockIds = ['BTC_USDT', 'XRP_BTC']
+
 
 const sampleInput = [
-  [
-    'USDT_ETC', // symbol 0
-    '16.15000000', // last 1
-    '16.21563646', // lowest ask 2
-    '16.11578454', // highest bid 3
-    '0.01974452', // percentage change 4
-    '1107713.82036744', // base volume 5
-    '69083.63851733', // quote volume 6
-    0, // is frozen 7
-    '16.39200000', // high 8
-    '15.48198972'
-  ],
-  [
-    'USDT_XMR', // symbol 0
-    '16.15000000', // last 1
-    '16.21563646', // lowest ask 2
-    '16.11578454', // highest bid 3
-    '0.01974452', // percentage change 4
-    '1107713.82036744', // base volume 5
-    '69083.63851733', // quote volume 6
-    0, // is frozen 7
-    '16.39200000', // high 8
-    '15.48198972' // low 9
-  ]
+  1,              // id
+  '0.14499000',     // last
+  '0.14498999',     // lowest ask
+  '0.14476833',     // highest bid
+  '-0.02828743',    // percentage change
+  '201.12708881',   // base volume
+  '1362.99989281',  // quote volume
+  0,                // is frozen
+  '0.14955007',     // high
+  '0.14398806'      // low
 ]
 
-const expectedOutput = {
-  "USDT/ETC": {
-    "ask": 16.21563646,
-    "askVolume": undefined,
-    "average": undefined,
-    "baseVolume": 1107713.82036744,
-    "bid": 16.11578454,
-    "bidVolume": undefined,
-    "change": 0.01974452,
-    "close": 16.15,
-    "datetime": undefined,
-    "high": 16.392,
-    "info": ["USDT_ETC", "16.15000000", "16.21563646", "16.11578454", "0.01974452", "1107713.82036744", "69083.63851733", 0, "16.39200000", "15.48198972"],
-    "last": 16.15,
-    "low": 15.48198972,
-    "open": undefined,
-    "percentage": 1.974452,
-    "previousClose": undefined,
-    "quoteVolume": 69083.63851733,
-    "symbol": "USDT/ETC",
-    "timestamp": undefined,
-    "vwap": undefined
-  },
-  "USDT/XMR": {
-    "ask": 16.21563646,
-    "askVolume": undefined,
-    "average": undefined,
-    "baseVolume": 1107713.82036744,
-    "bid": 16.11578454,
-    "bidVolume": undefined,
-    "change": 0.01974452,
-    "close": 16.15,
-    "datetime": undefined,
-    "high": 16.392,
-    "info": ["USDT_XMR", "16.15000000", "16.21563646", "16.11578454", "0.01974452", "1107713.82036744", "69083.63851733", 0, "16.39200000", "15.48198972"],
-    "last": 16.15,
-    "low": 15.48198972,
-    "open": undefined,
-    "percentage": 1.974452,
-    "previousClose": undefined,
-    "quoteVolume": 69083.63851733,
-    "symbol": "USDT/XMR",
-    "timestamp": undefined,
-    "vwap": undefined
-  }
-}
+

@@ -3,29 +3,26 @@ const ccxt = require('ccxt')
 class PoloniexTransformer {
   constructor(ccxt) {
     this.ccxt = ccxt
-  }
 
-  transformMultipleObjects (input) {
-    return input.reduce((result, object) => {
-      if (this.getSymbolById(object[0])) result[this.getSymbolById(object[0])] = this.transformSingleObject(object)
-      return result
+    // Because poloniex returns ID numbers in the ticker, we need to know what symbol matches that id
+    this.marketsMapping = this.ccxt.ids.reduce((prev, marketId) => {
+      const id = this.ccxt.marketsById[marketId].info.id
+      prev[id] = marketId
+      return prev
     }, {})
   }
 
-  getSymbolById (symbolId) {
-    // Takes something like "ETHBTC", "ETH-BTC" (symbol naming the exchange uses in their API) and returns "ETH/BTC"
+  getSymbolById (id) {
+    const symbolId = this.marketsMapping[id]
     if (this.ccxt.marketsById[symbolId]) return this.ccxt.marketsById[symbolId].symbol
     return null
-  }
-
-  getRelativeChange (ticker) {
-
   }
 
   transformSingleObject (input) {
     let output = {}
     const last = this.ccxt.safeFloat(input, 1)
     const percentage = input[4]
+    const symbol = this.getSymbolById(input[0])
     let timestamp = this.ccxt.milliseconds()
     let relativeChange = parseFloat(percentage)
     if (relativeChange !== -1) {
@@ -33,10 +30,9 @@ class PoloniexTransformer {
       let change = last - open
       let average = this.ccxt.sum(last, open) / 2
     }
-    // See: https://github.com/Bittrex/beta/blob/master/README.md#appendix-a-minified-json-keys
 
-    return {
-      'symbol': this.getSymbolById(input[0]),
+    output[symbol] = {
+      'symbol': symbol,
       'timestamp': timestamp,
       'datetime': this.ccxt.iso8601(timestamp),
       'high': this.ccxt.safeFloat(input, 8),
@@ -54,27 +50,27 @@ class PoloniexTransformer {
       'percentage': relativeChange * 100,
       'average': undefined,
       'baseVolume': this.ccxt.safeFloat(input, 5),
-      'quoteVolume': this.ccxt.safeFloat(input, 6)
-      // 'info': input
+      'quoteVolume': this.ccxt.safeFloat(input, 6),
+      'info': input
     }
 
     return output
   }
 }
 
-/*
 
+/*
 const sampleInput = [
-  'USDT_ETC', // symbol 0
-  '16.15000000', // last 1
-  '16.21563646', // lowest ask 2
-  '16.11578454', // highest bid 3
-  '0.01974452', // percentage change 4
-  '1107713.82036744', // base volume 5
-  '69083.63851733', // quote volume 6
-  0, // is frozen 7
-  '16.39200000', // high 8
-  '15.48198972' // low 9
+  189,              // id
+  '0.14499000',     // last
+  '0.14498999',     // lowest ask
+  '0.14476833',     // highest bid
+  '-0.02828743',    // percentage change
+  '201.12708881',   // base volume
+  '1362.99989281',  // quote volume
+  0,                // is frozen
+  '0.14955007',     // high
+  '0.14398806'      // low
 ]
 */
 

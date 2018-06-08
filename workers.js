@@ -10,6 +10,8 @@ const Table = require('cli-table')
 const ccxt = require('ccxt')
 const Worker = require('./workers/worker')
 const Binance = require('./workers/binance')
+const Bittrex = require('./workers/bittrex')
+const Poloniex = require('./workers/poloniex')
 const Redis = require('ioredis')
 const redisPub = new Redis(process.env.REDIS_URL)
 const { convertObjectToKeyString } = require('./helpers/objects')
@@ -23,10 +25,10 @@ Raven.context(function () {
 
   // An array with exchanges you want to have enabled
   // An empty array means this script will use all available exchanges
-  const userEnabledExchanges = ['bittrex', 'poloniex', 'okex', 'kraken', 'hitbtc', 'lbank', 'bithumb']
+  const userEnabledExchanges = ['poloniex', 'binance', 'bittrex', 'kraken', 'okex', 'hitbtc', 'lbank', 'bithumb']
 
   // An array with exchanges that uses a websocket connection
-  const hasWebsocketTicker = ['binance']
+  const hasWebsocketTicker = ['binance', 'bittrex', 'poloniex']
   // const hasWebsocketTicker = ['binance', 'bitfinex', 'bitfinex2', 'bitflyer', 'bitmex', 'bitstamp', 'gdax', 'hitbtc', 'hitbtc2', 'huobi', 'okex']
   // TODO: add bittrex, poloniex when done testing. We just poll bittrex and poloniex for now
 
@@ -55,18 +57,18 @@ Raven.context(function () {
     exchangeWorker.startInterval('fetchTickers', 2000)
 
     // Log the status of each worker to the console every X seconds
-    // setInterval(() => {
+    setInterval(() => {
 
-    //   // Log status to console from each worker
-    //   logger(exchangeWorker)
+      // Log status to console from each worker
+      logger(exchangeWorker)
 
-    //   // Per worker we can determine when we want a restart
-    //   // Restart the worker if we should
-    //   if (exchangeWorker.shouldRestartNow()) {
-    //     console.log(`\nSTATUS: ${exchange} Worker: Restarting because of runningtime limitations...`)
-    //     exchangeWorker.restart()
-    //   }
-    // }, 5000)
+      // Per worker we can determine when we want a restart
+      // Restart the worker if we should
+      if (exchangeWorker.shouldRestartNow()) {
+        console.log(`\nSTATUS: ${exchange} Worker: Restarting because of runningtime limitations...`)
+        exchangeWorker.restart()
+      }
+    }, 10000)
 
   })
 
@@ -79,8 +81,12 @@ Raven.context(function () {
 
   redisPub.hmset('exchanges', convertObjectToKeyString(exchangesCache))
 
-  const websocketExchangeWorker = new Binance()
-  websocketExchangeWorker.start()
+  const websocketBinance = new Binance()
+  const websocketBittrex = new Bittrex()
+  const websocketPoloniex = new Poloniex()
+  websocketBinance.start()
+  websocketBittrex.start()
+  websocketPoloniex.start()
 
   // setInterval(() => {
 

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Socket Status</title>
+    <script type="text/javascript" src="js/socket-io.js"></script>
+    <style>
+      body {
+        font-family: 'Helvetica Neue'
+      }
+
+      .response {
+        display: inline-block;
+        width: 300px;
+        display: inline-block;
+        margin: 10px;
+        padding: 10px;
+        border: 3px #ccc solid;
+        border-radius: 6px;
+        background-color: #fff;
+        height: 100px;
+        overflow: hidden;
+        transition: 250ms border-color;
+      }
+      .response pre {
+        word-break: break-word;
+        height: 300px;
+        text-align: left;
+        overflow: scroll;
+        background-color: #eeeeee;
+        padding: 20px;
+        border-radius: 3px;
+      }
+      .response .response__time,
+      .response .response__channel {
+        opacity: 0.5;
+        font-size: 12px;
+      }
+
+      .response .response__time span {
+        display: block;
+      }
+
+      .response__header {
+        position: relative;
+      }
+
+      .response__header strong {
+        display: block;
+        font-size: 18px;
+        margin-bottom: 10px;
+      }
+
+      .response__badge {
+        position: absolute;
+        top: 0;
+        right: 0;
+        background-color: #ccc;
+        color: #000;
+        font-size: 12px;
+        border-radius: 3px;
+        padding: 5px 7px;
+      }
+
+      .is-hidden {
+        display: none;
+      }
+
+      .available-exchanges {
+        padding: 20px;
+        background-color: #eee;
+        border-radius: 6px;
+        margin: 10px;
+        border: 3px #ccc solid;
+      }
+
+      .is-updated {
+        border-color: green;
+      }
+
+    </style>
+  </head>
+  <body>
+
+    <div class="available-exchanges">
+      <strong>Available exchanges:</strong>
+      <pre id="available-exchanges"></pre>
+    </div>
+
+    <!-- <hr /> -->
+
+    <div id="responses"></div>
+
+    <div class="response is-hidden" id="response-template">
+      <div class="response__header">
+        <strong>
+          <span class="response__name">...</span>
+          (<span class="response__total">...</span>)
+        </strong>
+        <div class="response__badge">Waiting...</div>
+        <div class="response__time">Last update: <span class="response__update">...</span></div>
+        <div class="response__channel">Channel: <span>...</span></div>
+      </div>
+      <!-- <div class="response__body">
+        <pre>
+          Waiting...
+        </pre>
+      </div> -->
+    </div>
+
+    <script type="text/javascript">
+      var socket = io('http://localhost:3000');
+
+      socket.on('connect', function(data){
+        console.log('connect!')
+
+        // Specific symbols
+        socket.emit('subscribe', {
+          type: 'tickers',
+          exchange: 'bittrex',
+          symbols: ['BTC/USDT', 'ETH/BTC']
+        })
+
+        // All available symbols
+        socket.emit('subscribe', {
+          type: 'tickers',
+          exchange: 'binance',
+          symbols: null
+        })
+        socket.emit('subscribe', {
+          type: 'tickers',
+          exchange: 'bittrex',
+          symbols: null
+        })
+
+        // socket.emit('unsubscribe', 'TICKERS~ANOTHER~TEST')
+
+        socket.on('message', function(data){
+          // console.log('message: ', data)
+        })
+      })
+
+
+      socket.on('disconnect', function(){});
+    </script>
+  </body>
+</html>

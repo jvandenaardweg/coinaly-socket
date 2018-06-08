@@ -3,11 +3,11 @@
   "description": "Websocket server for coinaly.io",
   "version": "1.0.0",
   "scripts": {
-    "start": "./node_modules/forever/bin/forever websocket-server.js",
-    "dev": "concurrently --kill-others \"nodemon websocket-server.js\" \"nodemon workers.js\"",
-    "start:docker": "node socketcluster/dockerwait.js && node ${SOCKETCLUSTER_MASTER_CONTROLLER:-server.js}",
-    "start:workers": "./node_modules/forever/bin/forever workers.js",
+    "start": "./node_modules/forever/bin/forever websocket.js",
+    "dev": "concurrently --kill-others \"npm run dev:websocket\" \"npm run dev:workers\"",
+    "dev:websocket": "nodemon websocket.js",
     "dev:workers": "nodemon workers.js",
+    "start:workers": "./node_modules/forever/bin/forever workers.js",
     "test": "jest --forceExit",
     "test:watch": "jest --watch"
   },
@@ -53,6 +53,7 @@
     "scc-broker-client": "^5.0.2",
     "serve-static": "^1.13.2",
     "signalr-client": "0.0.17",
+    "socket.io": "^2.1.1",
     "socket.io-client": "^2.1.0",
     "socketcluster": "^13.1.3",
     "socketcluster-client": "^13.0.0",

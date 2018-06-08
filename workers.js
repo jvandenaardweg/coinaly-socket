@@ -1,4 +1,3 @@
-require('newrelic')
 require('dotenv').config()
 const Raven = require('raven')
 Raven.config(process.env.SENTRY_DSN, {

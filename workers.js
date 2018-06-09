@@ -1,19 +1,35 @@
 require('dotenv').config()
+
 const Raven = require('raven')
 Raven.config(process.env.SENTRY_DSN, {
   captureUnhandledRejections: true,
   autoBreadcrumbs: true
 }).install()
+
 const moment = require('moment')
 const Table = require('cli-table')
 const ccxt = require('ccxt')
+
 const Worker = require('./workers/base')
-const Binance = require('./workers/binance')
-const Bittrex = require('./workers/bittrex')
-const Poloniex = require('./workers/poloniex')
+// const binance = require('./workers/binance')
+// const bittrex = require('./workers/bittrex')
+// const poloniex = require('./workers/poloniex')
+
 const Redis = require('ioredis')
 const redisPub = new Redis(process.env.REDIS_URL)
+
 const { convertObjectToKeyString } = require('./helpers/objects')
+
+
+function saveAvailableExchanges (allExchanges, hasWebsocketTicker, exchangesToUsePolling) {
+  const supportedExchanges = hasWebsocketTicker.concat(exchangesToUsePolling)
+  const exchangesCache = allExchanges.reduce((previous, exchangeName) => {
+    previous[exchangeName] = supportedExchanges.includes(exchangeName) // Returning example: bittrex: true
+    return previous
+  }, {})
+
+  redisPub.hmset('exchanges', convertObjectToKeyString(exchangesCache))
+}
 
 // Wrap it in a Raven context, so unhandled exceptions are logged
 Raven.context(function () {
@@ -24,122 +40,65 @@ Raven.context(function () {
 
   // An array with exchanges you want to have enabled
   // An empty array means this script will use all available exchanges
-  const userEnabledExchanges = ['poloniex', 'binance', 'bittrex', 'kraken', 'okex', 'hitbtc', 'lbank', 'bithumb']
+  const userEnabledExchanges = ['poloniex', 'binance', 'bittrex', 'kraken', 'okex', 'lbank', 'bithumb', 'bitfinex2', 'hitbtc2']
 
   // An array with exchanges that uses a websocket connection
   const hasWebsocketTicker = ['binance', 'bittrex', 'poloniex']
-  // const hasWebsocketTicker = ['binance', 'bitfinex', 'bitfinex2', 'bitflyer', 'bitmex', 'bitstamp', 'gdax', 'hitbtc', 'hitbtc2', 'huobi', 'okex']
-  // TODO: add bittrex, poloniex when done testing. We just poll bittrex and poloniex for now
 
   // These exchange give errors while polling fetchTickers. So we disable them, for now.
   // Find out why this happens, maybe we need to tweak the interval time for these
-  const exchangesDisabled = ['bitfinex', 'hitbtc', 'btcexchange', 'bxinth', 'coolcoin', 'cointiger', 'xbtce', 'braziliex', 'btcbox', 'coinegg', 'coingi', 'dsx', 'ice3x', 'yobit', 'jubi', 'tidex', 'yunbi']
+  // const exchangesDisabled = ['bitfinex', 'hitbtc', 'btcexchange', 'bxinth', 'coolcoin', 'cointiger', 'xbtce', 'braziliex', 'btcbox', 'coinegg', 'coingi', 'dsx', 'ice3x', 'yobit', 'jubi', 'tidex', 'yunbi']
+  const exchangesDisabled = []
   // We don't enable "bitfinex" or "hitbtc" because we want the script to use their V2 API's, which is exchange name "bitfinex2" and "hitbtc2"
 
   // Find out which exchanges we can poll
-  const exchangesToPoll = allExchanges.filter(exchangeName => {
-    if (
-      hasWebsocketTicker.includes(exchangeName) ||
-      exchangesDisabled.includes(exchangeName) ||
-      !userEnabledExchanges.includes(exchangeName)
-    ) return
+  const exchangesToUsePolling = allExchanges.filter(exchangeName => {
+    if (hasWebsocketTicker.includes(exchangeName) || exchangesDisabled.includes(exchangeName) || !userEnabledExchanges.includes(exchangeName)) return
 
     // Check if the exchange supports "fetchTickers", which we use to poll the exchange at the rateLimit interval
     const ccxtInstance = new ccxt[exchangeName]
     if (ccxtInstance.has.fetchTickers) return true
   })
 
-  // Start polling
-  exchangesToPoll.map(exchange => {
-    const exchangeWorker = new Worker(exchange)
-    exchangeWorker.createCCXTInstance()
-    exchangeWorker.startInterval('fetchTickers', 2000)
-
-    // Log the status of each worker to the console every X seconds
-    setInterval(() => {
-
-      // Log status to console from each worker
-      logger(exchangeWorker)
-
-      // Per worker we can determine when we want a restart
-      // Restart the worker if we should
-      if (exchangeWorker.shouldRestartNow()) {
-        console.log(`\nSTATUS: ${exchange} Worker: Restarting because of runningtime limitations...`)
-        exchangeWorker.restart()
-      }
-    }, 10000)
-
+  // Find out which exchanges we can use for websocket
+  // The exchangesDisabled array can overwrite the has hasWebsocketTicker
+  const exchangesToUseWebsocket = allExchanges.filter(exchangeName => {
+    return hasWebsocketTicker.includes(exchangeName) && userEnabledExchanges.includes(exchangeName) && !exchangesDisabled.includes(exchangeName)
   })
 
-  const supportedExchanges = hasWebsocketTicker.concat(exchangesToPoll)
+  // Save the available exchanges into Redis
+  // So we can use that in other parts of our app
+  saveAvailableExchanges(allExchanges, hasWebsocketTicker, exchangesToUsePolling)
 
-  const exchangesCache = allExchanges.reduce((previous, exchangeName) => {
-    previous[exchangeName] = supportedExchanges.includes(exchangeName) // Returning example: bittrex: true
-    return previous
-  }, {})
+  // Start polling
+  exchangesToUsePolling.forEach(exchange => {
+    workers[exchange] = new Worker(exchange)
+    workers[exchange].createCCXTInstance()
+    workers[exchange].startInterval('fetchTickers', 5000)
+    // We use a 2 sec interval. The script will automatically look if this is within the API rate limitation
+    // If the 2 sec interval is lower then the rateLimit, we use the rateLimit
+  })
 
-  redisPub.hmset('exchanges', convertObjectToKeyString(exchangesCache))
+  // Start websockets
+  exchangesToUseWebsocket.forEach(exchange => {
+    const Worker = require(`./workers/${exchange}`)
+    workers[exchange] = new Worker()
+    workers[exchange].start()
+  })
 
-  const websocketBinance = new Binance()
-  const websocketBittrex = new Bittrex()
-  const websocketPoloniex = new Poloniex()
-  websocketBinance.start()
-  websocketBittrex.start()
-  websocketPoloniex.start()
-
-  // setInterval(() => {
-
-  //   // Log status to console from each worker
-  //   // Object.keys(exchangesEnabled).forEach((exchangeSlug, index) => {
-  //     // logger(workers[exchangeSlug])
-
-  //     // Per worker we can determine when we want a restart
-  //     // Restart the worker if we should
-  //     if (websocketExchangeWorker.shouldRestartNow()) {
-  //       console.log(`\nSTATUS: ${workers[exchangeSlug].exchangeName} Worker: Restarting because of runningtime limitations...`)
-  //       workers[exchangeSlug].restart()
-  //     }
-  //   // })
-  // }, 5000)
-
-  // console.log(`${exchangesToPoll.length} exchanges that have polling fallback methods to fetch ticker data`, exchangesToPoll)
-
-  // const Binance = require('./workers/binance')
-
-  // Order reflects trading volumes on Coinmarketcap at 12 apr. 2018
-  // workers['binance'] = new Binance()
-  // workers['okex'] = new Okex()
-  // workers['bitfinex'] = new Bitfinex()
-  // workers['bithumb'] = new Bithumb()
-  // workers['bittrex'] = new Bittrex()
-  // workers['bittrex'] = new Bittrex()
-  // workers['hitbtc'] = new Hitbtc()
-  // workers['lbank'] = new Lbank()
-  // workers['bitz'] = new Bitz()
-  // workers['kraken'] = new Kraken()
-  // workers['poloniex'] = new Poloniex()
-  // workers['kucoin'] = new Kucoin()
-  // workers['liqui'] = new Liqui()
-
-  // Object.keys(exchangesEnabled).forEach((exchangeSlug, index) => {
-  //   workers[exchangeSlug].start()
-  // })
-
-  // Report data to console for debugging and status check
-  // setInterval(() => {
-
-  //   // Log status to console from each worker
-  //   Object.keys(exchangesEnabled).forEach((exchangeSlug, index) => {
-  //     // logger(workers[exchangeSlug])
-
-  //     // Per worker we can determine when we want a restart
-  //     // Restart the worker if we should
-  //     if (workers[exchangeSlug].shouldRestartNow()) {
-  //       console.log(`\nSTATUS: ${workers[exchangeSlug].exchangeName} Worker: Restarting because of runningtime limitations...`)
-  //       workers[exchangeSlug].restart()
-  //     }
-  //   })
-  // }, 5000)
+  setInterval(() => {
+    // TODO: do health checking in here
+    // Log status to console from each worker
+    Object.keys(workers).forEach((exchangeSlug, index) => {
+      logger(workers[exchangeSlug])
+      // Per worker we can determine when we want a restart
+      // Restart the worker if we should
+      if (workers[exchangeSlug].shouldRestartNow()) {
+        console.log(`\nSTATUS: ${workers[exchangeSlug].exchangeName} Worker: Restarting because of runningtime limitations...`)
+        workers[exchangeSlug].restart()
+      }
+    })
+  }, 5000)
 })
 
 

@@ -1,6 +1,8 @@
 # Cryptocurrency Tickers Websocket
 Cryptocurrency exchange tickers streamed over websockets of all supported exchanges in the CCXT library.
 
+> **Note**: Project is not being worked on, at the moment. This repository now serves as an example for what I've been working on in my free time.
+
 Using the CCXT library and available exchange websockets to create streaming exchange data that uses the CCXT data model. So it can be used in other parts of your application that use CCXT.
 
 When an exchange has no websocket itself, or that websocket just lacks data, it will fallback to polling the tickers using the “fetchTickers” method build in CCXT and by providing a configurable interval. The script will respect the API’s rate limiting by using the build in rate limiter of CCXT.
